@@ -82,12 +82,12 @@ public class DataBaseController {
 		// INSERT TOKEN to CHAT_AUTH_TB. or UPDATE TOKEN to CHAT_AUTH_TB.
 		if (getAuthTokenFromDB(user.getUserId()) == null) {// Else if (token is not exist) INSERT TOKEN.
 			if (!insertAuthTokenToDB(user.getUserId(), token)) {
-				LOG.info("[login()] END with FAIL");
+				LOG.severe("[login()] END with FAIL");
 				return null;
 			}
 		} else {// If (token is already exist) UPDATE TOKEN
 			if (!updateAuthTokenToDB(user.getUserId(), token)) {
-				LOG.info("[login()] END with FAIL");
+				LOG.severe("[login()] END with FAIL");
 				return null;
 			}
 		}
@@ -97,6 +97,39 @@ public class DataBaseController {
 
 		// return token;
 		LOG.info("[login()] END with SUCCESS");
+		return user;
+	}
+
+	// 유저 로그아.
+	// params : authToken
+	// return : userId
+	// if(FAIL) : return null;
+	public UserInfo logout(UserInfo user) throws Exception {
+		LOG.info("[logout()] START");
+		// DELETE FROM `pgtDB`.`CHAT_AUTH_TB` WHERE (`userId` = 'testUser1');
+
+		// CheckingUserLogin && getUserIdUsingToken.
+		String userId = null;
+		if ((userId = getUserIdUsingToken(user.getToken())) == null) {
+			LOG.severe("[logout()] END with FAIL");
+			return null;
+		}
+
+		// setUserId.
+		user.setUserId(userId);
+
+		// DELETE Field.
+		try {
+			String sql = String.format("DELETE FROM pgtDB.CHAT_AUTH_TB WHERE userId='%s' AND token = '%s'", userId,
+					user.getToken());
+			System.out.println("Update Field = " + jdb.update(sql));
+		} catch (EmptyResultDataAccessException e) {// DELETE 실패.
+			LOG.info("There's no same userId & token. It can't deleted");
+			LOG.severe("[logout()] END with FAIL");
+			return null;
+		}
+
+		LOG.info("[logout()] END with SUCCESS");
 		return user;
 	}
 
@@ -113,7 +146,8 @@ public class DataBaseController {
 	private boolean checkUserExist(String userId) {
 		Map<String, Object> map = null;
 		try {
-			map = jdb.queryForMap(String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", userId));
+			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", userId);
+			map = jdb.queryForMap(sql);
 		} catch (EmptyResultDataAccessException e) {// User가 없는 경우.
 			LOG.info("There's no same userId. It can create new user");
 		}
@@ -124,11 +158,25 @@ public class DataBaseController {
 			return true;
 	}
 
+	private boolean checkUserLogin(String token) {
+		Map<String, Object> map = null;
+		try {
+			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE token='%s'", token);
+			map = jdb.queryForMap(sql);
+		} catch (EmptyResultDataAccessException e) {
+			LOG.severe("There's no user. having same token");
+			return false;
+		}
+
+		return true;
+	}
+
 	// 유저 존재 확인 & 유저 비밀번호의 적합성 검사.
 	private boolean checkUserPassword(String userId, String password) {
 		try {
-			Map<String, Object> map = jdb.queryForMap(String.format(
-					"SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userID='%s' AND password='%s'", userId, password));
+			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userID='%s' AND password='%s'",
+					userId, password);
+			Map<String, Object> map = jdb.queryForMap(sql);
 		} catch (EmptyResultDataAccessException e) {
 			LOG.severe("There's no appropriate User");
 			return false;
@@ -177,7 +225,8 @@ public class DataBaseController {
 		// SELECT token FROM pgtDB.CHAT_AUTH_TB WHERE userID='testUserId1';
 		Map<String, Object> map = null;
 		try {
-			map = jdb.queryForMap(String.format("SELECT token FROM pgtDB.CHAT_AUTH_TB WHERE userID='%s'", userId));
+			String sql = String.format("SELECT token FROM pgtDB.CHAT_AUTH_TB WHERE userID='%s'", userId);
+			map = jdb.queryForMap(sql);
 		} catch (EmptyResultDataAccessException e) {
 			LOG.info("There's no token for user.");
 			return null;
@@ -185,5 +234,18 @@ public class DataBaseController {
 
 		String token = (String) map.get("token");
 		return token;
+	}
+
+	private String getUserIdUsingToken(String token) {
+		Map<String, Object> map = null;
+		try {
+			String sql = String.format("SELECT userId FROM pgtDB.CHAT_AUTH_TB WHERE token='%s'", token);
+			map = jdb.queryForMap(sql);
+		} catch (EmptyResultDataAccessException e) {
+			LOG.severe("There's no user. having same token");
+			return null;
+		}
+
+		return (String) map.get("userId");
 	}
 }

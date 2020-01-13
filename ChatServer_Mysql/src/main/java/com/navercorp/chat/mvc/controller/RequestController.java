@@ -105,11 +105,14 @@ public class RequestController {
 
 	// 로그아웃
 	@RequestMapping(value = "/logout", method = RequestMethod.DELETE)
-	public Map<String, String> logout(UserInfo user, Model model) {
-		LOG.info("[logout()] POST : /logout START");
-		// logout();
-		LOG.info("[logout()] POST : /logout END");
-		return ResponseMapping(RequestType.DELETE, ResponseCode.SUCCESS);
+	public Map<String, String> logout(UserInfo user, Model model) throws Exception {
+		LOG.info("[logout()] DELETE : /logout START");
+		ResponseCode rc = ResponseCode.SUCCESS;
+		if ((user = dbc.logout(user))==null) {
+			rc = ResponseCode.FAIL;
+		}
+		LOG.info("[logout()] DELETE: /logout END");
+		return ResponseMapping(RequestType.DELETE, rc);
 	}
 
 //PUT========================================================================
