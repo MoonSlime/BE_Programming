@@ -72,20 +72,25 @@ public class RequestController {
 	// 회원가입
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public Map<String, String> signup(UserInfo user, Model model) throws Exception {
-		System.out.println("RC.signup");
 		LOG.info("[signup()] POST : /signIn START");
-		dbc.signup(user);
+		ResponseCode rc = ResponseCode.FAIL;
+		if (dbc.signup(user)) {
+			rc = ResponseCode.SUCCESS;
+		}
 		LOG.info("[signup()] POST : /signIn END");
-		return ResponseMapping(RequestType.POST, ResponseCode.SUCCESS);
+		return ResponseMapping(RequestType.POST, rc);
 	}
 
 	// 로그인
 	@RequestMapping(value = "/login", method = RequestMethod.POST)
-	public Map<String, String> login(UserInfo user, Model model) {
+	public Map<String, String> login(UserInfo user, Model model) throws Exception {
 		LOG.info("[login()] POST : /login START");
-		// login();
+		ResponseCode rc = ResponseCode.SUCCESS;
+		if ((user = dbc.login(user))==null) {
+			rc = ResponseCode.FAIL;
+		}
 		LOG.info("[login()] POST : /login END");
-		return ResponseMapping(RequestType.POST, ResponseCode.SUCCESS);
+		return ResponseMapping(RequestType.POST, rc);
 	}
 
 //DELETE======================================================================

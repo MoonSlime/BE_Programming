@@ -16,6 +16,7 @@ public class UserInfo {
 	private String password; // password
 	private String name; // chat name
 
-	@Singular("token") // can push(data) oncely
-	List<String> token; // user's auth token(create at login)
+//	@Singular("token") // can push(data) oncely
+//	List<String> token; // user's auth token(create at login)
+	private String token;
 }
