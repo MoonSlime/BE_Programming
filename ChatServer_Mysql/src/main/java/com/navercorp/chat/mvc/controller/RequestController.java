@@ -22,7 +22,10 @@ import com.navercorp.chat.mvc.model.UserInfo;
 @ComponentScan("com.navercorp.chat.mvc.controller")
 public class RequestController {
 	private static final Logger LOG = Logger.getLogger(RequestController.class.getName());
-
+	
+	@Autowired
+	private DataBaseController dbc;
+	
 	enum RequestType {
 		POST, PUT, GET, DELETE
 	}
@@ -68,9 +71,10 @@ public class RequestController {
 //POST======================================================================
 	// 회원가입
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public Map<String, String> signup(UserInfo user, Model model) {
+	public Map<String, String> signup(UserInfo user, Model model) throws Exception {
+		System.out.println("RC.signup");
 		LOG.info("[RequestMapping()] POST : /signIn START");
-		// signup();
+		dbc.signup(user);
 		LOG.info("[RequestMapping()] POST : /signIn END");
 		return ResponseMapping(RequestType.POST, ResponseCode.SUCCESS);
 	}
