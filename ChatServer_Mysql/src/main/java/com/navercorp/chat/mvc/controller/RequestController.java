@@ -73,18 +73,18 @@ public class RequestController {
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public Map<String, String> signup(UserInfo user, Model model) throws Exception {
 		System.out.println("RC.signup");
-		LOG.info("[RequestMapping()] POST : /signIn START");
+		LOG.info("[signup()] POST : /signIn START");
 		dbc.signup(user);
-		LOG.info("[RequestMapping()] POST : /signIn END");
+		LOG.info("[signup()] POST : /signIn END");
 		return ResponseMapping(RequestType.POST, ResponseCode.SUCCESS);
 	}
 
 	// 로그인
 	@RequestMapping(value = "/login", method = RequestMethod.POST)
 	public Map<String, String> login(UserInfo user, Model model) {
-		LOG.info("[RequestMapping()] POST : /login START");
+		LOG.info("[login()] POST : /login START");
 		// login();
-		LOG.info("[RequestMapping()] POST : /login END");
+		LOG.info("[login()] POST : /login END");
 		return ResponseMapping(RequestType.POST, ResponseCode.SUCCESS);
 	}
 
@@ -101,9 +101,9 @@ public class RequestController {
 	// 로그아웃
 	@RequestMapping(value = "/logout", method = RequestMethod.DELETE)
 	public Map<String, String> logout(UserInfo user, Model model) {
-		LOG.info("[RequestMapping()] POST : /logout START");
+		LOG.info("[logout()] POST : /logout START");
 		// logout();
-		LOG.info("[RequestMapping()] POST : /logout END");
+		LOG.info("[logout()] POST : /logout END");
 		return ResponseMapping(RequestType.DELETE, ResponseCode.SUCCESS);
 	}
 
@@ -111,9 +111,9 @@ public class RequestController {
 	// 유저 정보 변경
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
 	public Map<String, String> updateUserInfo(UserInfo user, Model model) {
-		LOG.info("[RequestMapping()] POST : /signIn START");
+		LOG.info("[logout()] POST : /signIn START");
 		// signUp();
-		LOG.info("[RequestMapping()] POST : /signIn END");
+		LOG.info("[logout()] POST : /signIn END");
 		return ResponseMapping(RequestType.PUT, ResponseCode.SUCCESS);
 	}
 
@@ -122,9 +122,9 @@ public class RequestController {
 	//
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
 	public Map<String, String> getUser(UserInfo user, Model model) {
-		LOG.info("[RequestMapping()] GET : /signIn START");
+		LOG.info("[getuser()] GET : /signIn START");
 		// signUp();
-		LOG.info("[RequestMapping()] GET : /signIn END");
+		LOG.info("[getuser()] GET : /signIn END");
 		return ResponseMapping(RequestType.GET, ResponseCode.SUCCESS);
 	}
 	
