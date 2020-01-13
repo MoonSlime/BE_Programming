@@ -100,7 +100,7 @@ public class DataBaseController {
 		return user;
 	}
 
-	// 유저 로그아.
+	// 유저 로그아웃.
 	// params : authToken
 	// return : userId
 	// if(FAIL) : return null;
@@ -130,6 +130,12 @@ public class DataBaseController {
 		}
 
 		LOG.info("[logout()] END with SUCCESS");
+		return user;
+	}
+	
+	public UserInfo signout(UserInfo user) throws Exception {
+		//DELETE FROM `pgtDB`.`CHAT_USER_TB` WHERE (`userId` = 'testUser1');
+		
 		return user;
 	}
 
