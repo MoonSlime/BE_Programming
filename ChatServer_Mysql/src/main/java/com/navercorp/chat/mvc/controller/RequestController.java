@@ -134,7 +134,7 @@ public class RequestController {
 
 
 //GET========================================================================
-	// 유저 정보 조회 
+	// 유저 목록 조회 
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
 	public Map<String, Object> getUserList(UserInfo user, Model model) throws Exception {
 		LOG.info("[getUserList()] GET : /user START");
@@ -144,6 +144,23 @@ public class RequestController {
 			rc = ResponseCode.FAIL;
 		}
 		LOG.info("[getUserList()] GET : /user END");
+		Map<String, Object> responseMap = new HashMap<String, Object>();
+		responseMap.put("responseCode", (Object)rc);
+		responseMap.put("users", (Object)users);
+		return responseMap;
+//		return ResponseMapping(RequestType.GET, rc);
+	}
+
+	// 로그인한 유저 목록 조회 
+	@RequestMapping(value = "/user/login", method = RequestMethod.GET)
+	public Map<String, Object> getLoginedUserList(UserInfo user, Model model) throws Exception {
+		LOG.info("[getLoginedUserList()] GET : /user/login START");
+		ResponseCode rc = ResponseCode.SUCCESS;
+		List<Map<String, Object>> users = null;
+		if ((users = dbc.getLoginedUserList(user))==null) {
+			rc = ResponseCode.FAIL;
+		}
+		LOG.info("[getLoginedUserList()] GET : /user/login END");
 		Map<String, Object> responseMap = new HashMap<String, Object>();
 		responseMap.put("responseCode", (Object)rc);
 		responseMap.put("users", (Object)users);

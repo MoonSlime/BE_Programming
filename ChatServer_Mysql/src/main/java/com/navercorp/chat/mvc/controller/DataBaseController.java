@@ -217,6 +217,33 @@ public class DataBaseController {
 		LOG.info("[getUserList()] END with SUCCESS");
 		return users;
 	}
+	
+
+	// 로그인한 유저 목록 조회
+	// params : token
+	// return : map<userId, name>
+	// if(FAIL) : return null;
+	public List<Map<String, Object>> getLoginedUserList(UserInfo user) throws Exception {
+		LOG.info("[getLloginedUserList()] START");
+		
+		if (!authorization(user.getToken())) {
+			LOG.severe("FAIL with Authorization");
+			LOG.info("[getLoginedUserList()] END with FAIL");
+			return null;
+		}
+		
+		List<Map<String, Object>> users = null;
+		try {
+			String sql = new String("SELECT a.userID, n.name FROM pgtDB.CHAT_AUTH_TB AS a JOIN pgtDB.CHAT_NAME_TB AS n ON a.userID = n.userId");
+			users = jdb.queryForList(sql);
+		} catch (EmptyResultDataAccessException e) {
+			LOG.info("[getLoginedUserList()] END with FAIL");
+			return null;
+		}
+		
+		LOG.info("[getLoginedUserList()] END with SUCCESS");
+		return users;
+	}
 
 // Func() =======================================================
 	public Boolean test() throws Exception {
