@@ -34,8 +34,8 @@ public class DataBaseController {
 	public Boolean signup(UserInfo user) throws Exception {
 		LOG.info("[signup()] START");
 
-		if (checkUserExist(user.getUserId())) {
-			LOG.severe("[signup()] END with FAIL, Because User Already Exist");
+		if (checkUserExist(user.getUserId(), user.getName())) {
+			LOG.severe("[signup()] END with FAIL, Because UserId or UserName is Already Exist");
 			return false;
 		}
 
@@ -77,7 +77,7 @@ public class DataBaseController {
 		}
 
 		// create token
-		String token = createAuthToken();
+		String token = createAuthToken(user);
 
 		// INSERT TOKEN to CHAT_AUTH_TB. or UPDATE TOKEN to CHAT_AUTH_TB.
 		if (getAuthTokenFromDB(user.getUserId()) == null) {// Else if (token is not exist) INSERT TOKEN.
@@ -132,11 +132,90 @@ public class DataBaseController {
 		LOG.info("[logout()] END with SUCCESS");
 		return user;
 	}
-	
+
+	// 유저 회원탈퇴.
+	// params : authToken
+	// return : userId
+	// if(FAIL) : return null;
 	public UserInfo signout(UserInfo user) throws Exception {
-		//DELETE FROM `pgtDB`.`CHAT_USER_TB` WHERE (`userId` = 'testUser1');
-		
+		LOG.info("[signout()] START");
+		// DELETE FROM `pgtDB`.`CHAT_USER_TB` WHERE (`userId` = 'testUser1');
+
+		user.setUserId(getUserIdUsingToken(user.getToken()));
+		if (user.getUserId() == null) {
+			LOG.severe("[signout()] END with FAIL");
+			return null;
+		}
+
+		try {// CHAT_USER_TB's userId is (AUTH_TB & NAME_TB)'s Foriegn key. on delete
+				// cascade.
+			String sql = String.format("DELETE FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", user.getUserId());
+			System.out.println("Update Field = " + jdb.update(sql));
+		} catch (EmptyResultDataAccessException e) {// DELETE 실패.
+			LOG.info("There's no same userId & token. It can't deleted");
+			LOG.severe("[signout()] END with FAIL");
+			return null;
+		}
+
+		LOG.info("[signout()] END with SUCCESS");
 		return user;
+	}
+
+	// 유저정보 변경.
+	// params : token, name
+	// return : userId, name
+	// if(FAIL) : return null;
+	public UserInfo updateUserInfo(UserInfo user) throws Exception {
+		LOG.info("[updateUserInfo()] START");
+		// token -> userId
+		// SELECT userId FROM AUTH_TB WHERE token = '%s'
+		user.setUserId(getUserIdUsingToken(user.getToken()));
+		if (user.getUserId() == null) {
+			LOG.severe("FAIL with get UserId. using authToken");
+			LOG.info("[updateUserInfo()] END with FAIL");
+			return null;
+		}
+
+		// userId-> update name.
+		// UPDATE DB.NAME_TB SET name = '%s' WHERE userId = '%s'
+		try {
+			String sql = String.format("UPDATE pgtDB.CHAT_NAME_TB SET name = '%s' WHERE userId='%s'", user.getName(),
+					user.getUserId());
+			jdb.update(sql);
+		} catch (EmptyResultDataAccessException e) {
+			LOG.severe("FAIL with Update User Name ");
+			LOG.info("[updateUserInfo()] END with FAIL");
+			return null;
+		}
+
+		LOG.info("[updateUserInfo()] END with SUCCESS");
+		return user;
+	}
+	
+	// 유저 목록 조회
+	// params : token
+	// return : map<userId, name>
+	// if(FAIL) : return null;
+	public List<Map<String, Object>> getUserList(UserInfo user) throws Exception {
+		LOG.info("[getUserList()] START");
+		
+		if (!authorization(user.getToken())) {
+			LOG.severe("FAIL with Authorization");
+			LOG.info("[getUserList()] END with FAIL");
+			return null;
+		}
+		
+		List<Map<String, Object>> users = null;
+		try {
+			String sql = String.format("SELECT userId, name FROM pgtDB.CHAT_NAME_TB");
+			users = jdb.queryForList(sql);
+		} catch (EmptyResultDataAccessException e) {
+			LOG.info("[getUserList()] END with FAIL");
+			return null;
+		}
+		
+		LOG.info("[getUserList()] END with SUCCESS");
+		return users;
 	}
 
 // Func() =======================================================
@@ -149,7 +228,7 @@ public class DataBaseController {
 	}
 
 	// 유저 존재 확인.
-	private boolean checkUserExist(String userId) {
+	private boolean checkUserExist(String userId, String name) {
 		Map<String, Object> map = null;
 		try {
 			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", userId);
@@ -158,10 +237,20 @@ public class DataBaseController {
 			LOG.info("There's no same userId. It can create new user");
 		}
 
-		if (map == null)
-			return false;
-		else
+		if (map != null)
 			return true;
+		
+		try {
+			String sql = String.format("SELECT userId FROM pgtDB.CHAT_NAME_TB WHERE name='%s'", name);
+			map = jdb.queryForMap(sql);
+		} catch (EmptyResultDataAccessException e) {// User가 없는 경우.
+			LOG.info("There's no same name. It can create new user");
+		}
+		
+		if (map != null)
+			return true;
+		
+		return false;
 	}
 
 	private boolean checkUserLogin(String token) {
@@ -170,7 +259,7 @@ public class DataBaseController {
 			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE token='%s'", token);
 			map = jdb.queryForMap(sql);
 		} catch (EmptyResultDataAccessException e) {
-			LOG.severe("There's no user. having same token");
+			LOG.severe("There's no user having that token");
 			return false;
 		}
 
@@ -190,10 +279,23 @@ public class DataBaseController {
 		return true;
 	}
 
-	private String createAuthToken() {
-		return "TmpAuthToken";
+	private String createAuthToken(UserInfo user) {
+		//Must modified.
+		return user.getUserId();
 	}
 
+	private boolean authorization(String token) {
+		try {
+			String sql = String.format("SELECT token FROM pgtDB.CHAT_AUTH_TB WHERE token='%s'", token);
+			jdb.queryForMap(sql);
+		} catch (EmptyResultDataAccessException e) {
+			LOG.severe("Authorization FAIL");
+			return false;
+		}
+		
+		return true;
+	}
+	
 	private boolean insertAuthTokenToDB(String userId, String token) {
 		// INSERT INTO `pgtDB`.`CHAT_AUTH_TB` (`userId`, `token`) VALUES ('testUserId1',
 		// 'A');

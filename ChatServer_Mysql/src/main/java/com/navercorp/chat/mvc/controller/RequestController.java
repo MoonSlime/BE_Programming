@@ -1,6 +1,7 @@
 package com.navercorp.chat.mvc.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -96,11 +97,14 @@ public class RequestController {
 //DELETE======================================================================
 	// 회원탈퇴
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
-	public Map<String, String> signout(UserInfo user, Model model) {
-		LOG.info("[RequestMapping()] DELETE : /signOut START");
-		// signout();
-		LOG.info("[RequestMapping()] DELETE : /signOut END");
-		return ResponseMapping(RequestType.DELETE, ResponseCode.SUCCESS);
+	public Map<String, String> signout(UserInfo user, Model model) throws Exception {
+		LOG.info("[signout()] DELETE : /user START");
+		ResponseCode rc = ResponseCode.SUCCESS;
+		if ((user = dbc.signout(user))==null) {
+			rc = ResponseCode.FAIL;
+		}
+		LOG.info("[signout()] DELETE : /user END");
+		return ResponseMapping(RequestType.DELETE, rc);
 	}
 
 	// 로그아웃
@@ -118,22 +122,33 @@ public class RequestController {
 //PUT========================================================================
 	// 유저 정보 변경
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
-	public Map<String, String> updateUserInfo(UserInfo user, Model model) {
-		LOG.info("[logout()] POST : /signIn START");
-		// signUp();
-		LOG.info("[logout()] POST : /signIn END");
-		return ResponseMapping(RequestType.PUT, ResponseCode.SUCCESS);
+	public Map<String, String> updateUserInfo(UserInfo user, Model model) throws Exception {
+		LOG.info("[updateUserInfo()] PUT : /user START");
+		ResponseCode rc = ResponseCode.SUCCESS;
+		if ((user = dbc.updateUserInfo(user))==null) {
+			rc = ResponseCode.FAIL;
+		}
+		LOG.info("[updateUserInfo()] PUT : /user END");
+		return ResponseMapping(RequestType.PUT, rc);
 	}
 
 
 //GET========================================================================
-	//
+	// 유저 정보 조회 
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public Map<String, String> getUser(UserInfo user, Model model) {
-		LOG.info("[getuser()] GET : /signIn START");
-		// signUp();
-		LOG.info("[getuser()] GET : /signIn END");
-		return ResponseMapping(RequestType.GET, ResponseCode.SUCCESS);
+	public Map<String, Object> getUserList(UserInfo user, Model model) throws Exception {
+		LOG.info("[getUserList()] GET : /user START");
+		ResponseCode rc = ResponseCode.SUCCESS;
+		List<Map<String, Object>> users = null;
+		if ((users = dbc.getUserList(user))==null) {
+			rc = ResponseCode.FAIL;
+		}
+		LOG.info("[getUserList()] GET : /user END");
+		Map<String, Object> responseMap = new HashMap<String, Object>();
+		responseMap.put("responseCode", (Object)rc);
+		responseMap.put("users", (Object)users);
+		return responseMap;
+//		return ResponseMapping(RequestType.GET, rc);
 	}
 	
 //TEST===================================================================
