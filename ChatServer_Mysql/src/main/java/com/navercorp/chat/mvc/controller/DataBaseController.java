@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Vector;
 import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Component;
 
 import com.navercorp.chat.ApplicationDatabase;
 import com.navercorp.chat.mvc.model.Room;
-import com.navercorp.chat.mvc.model.User;
 import com.navercorp.chat.service.JwtTokenUtil;
 
 @Component
@@ -29,7 +29,7 @@ public class DataBaseController {
 
 	@Autowired
 	private JwtTokenUtil jwt;
-	
+
 	@Autowired
 	private ApplicationDatabase appDB;
 
@@ -37,8 +37,11 @@ public class DataBaseController {
 		LOG.info("DataBaseController Created");
 	}
 
-	private boolean token_to_db = true;
-	
+	// For Debug. Save Token to DB. IF(Deploy){It must be false.}
+	private boolean token_to_db = false;
+
+// USER_DB_CONTROLL ==================================================	
+
 	// 유저 생성(회원가입)
 	// params : userId, password, name
 	// return : SUCCESS or FAIL
@@ -91,12 +94,12 @@ public class DataBaseController {
 		String token = createAuthToken(userId);
 
 		appDB.loginedUser.put(userId, token);
-		
+
 		if (!token_to_db) {
 			LOG.info("[login()] END with SUCCESS");
 			return token;
 		}
-		
+
 		// INSERT TOKEN to CHAT_AUTH_TB. or UPDATE TOKEN to CHAT_AUTH_TB.
 		try {
 			String sql = String.format(
@@ -125,14 +128,14 @@ public class DataBaseController {
 		}
 		// token -> userId
 		String userId = jwt.getUserIdFromToken(token);
-		
+
 		appDB.loginedUser.remove(userId);
 
 		if (!token_to_db) {
 			LOG.info("[logout()] END with SUCCESS");
 			return token;
 		}
-		
+
 		// DELETE Field.
 		try {
 			String sql = String.format("DELETE FROM pgtDB.CHAT_AUTH_TB WHERE token = '%s'", token);
@@ -162,7 +165,7 @@ public class DataBaseController {
 		String userId = jwt.getUserIdFromToken(token);
 
 		appDB.loginedUser.remove(userId);
-		
+
 		try {// CHAT_USER_TB's userId is (AUTH_TB & NAME_TB)'s Foriegn key. on delete
 				// cascade.
 			String sql = String.format("DELETE FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", userId);
@@ -248,8 +251,8 @@ public class DataBaseController {
 			return null;
 		}
 
-		//appDB.update();!!
-		
+		// appDB.update();!!
+
 		List<Map<String, Object>> users = null;
 		try {
 			String sql = new String(
@@ -264,6 +267,88 @@ public class DataBaseController {
 		return users;
 	}
 
+// ROOM_DB_CONTROLL ===================================================
+
+	// 채팅방 생성
+	//
+	public Map<String, Object> createChatRoom(String token, String rname, String rpassword) {
+		LOG.info("[createChatRoom()] START");
+
+		if (!authorization(token)) {
+			LOG.info("[createChatRoom()] END with FAIL");
+			return null;
+		}
+
+		// Name 중복 확인.
+		for (String key : appDB.createdRoom.keySet()) {
+			if (appDB.createdRoom.get(key).getName().equals(rname)) {
+				LOG.info("[createChatRoom()] END with FAIL");
+				return null;
+			}
+		}
+
+		String roomId = null, userId = jwt.getUserIdFromToken(token), username = null;
+		try {
+			String sql = null;
+			if (rpassword == null) {
+				sql = String.format("INSERT INTO pgtDB.CHAT_ROOM_TB (name) VALUES ('%s')", rname);
+			} else {
+				sql = String.format("INSERT INTO pgtDB.CHAT_ROOM_TB (name,password) VALUES ('%s','%s')", rname,
+						rpassword);
+			}
+			jdb.update(sql);
+
+			sql = String.format("SELECT roomID FROM pgtDB.CHAT_ROOM_TB WHERE name='%s'", rname);
+			roomId = Integer.toString((int) jdb.queryForMap(sql).get("roomId"));
+
+			sql = String.format("SELECT name FROM pgtDB.CHAT_NAME_TB WHERE userId='%s'", userId);
+			username = (String) jdb.queryForMap(sql).get("name");
+
+		} catch (EmptyResultDataAccessException e) {
+			LOG.info("[createChatRoom()] END with FAIL");
+			return null;
+		}
+
+		Room room = new Room();
+		room.setRoomId(roomId);
+		room.setName(rname);
+		room.setPassword(rpassword);
+		room.setLastMsgId(0);
+		appDB.createdRoom.put(roomId, room);
+
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("roomId", roomId);
+		result.put("name", rname);
+		Map<String, Object> user = new HashMap<String, Object>();
+		user.put("userId", userId);
+		user.put("name", username);
+		result.put("users", user);
+
+		LOG.info("[createChatRoom()] END with SUCCESS");
+		return result;
+	}
+
+	//채팅방 조회 
+	//return : RoomList.
+	public List<Map<String, String>> getRoomList(String token) {
+		LOG.info("[getRoomList()] START");
+
+		if (!authorization(token)) {
+			LOG.info("[getRoomList()] END with FAIL");
+			return null;
+		}
+		
+		List<Map<String, String>> rooms = new Vector<Map<String, String>>();
+		for (String key : appDB.createdRoom.keySet()) {
+			Map<String, String> room = new HashMap<String, String>();
+			room.put("roomId", key);
+			room.put("name", appDB.createdRoom.get(key).getName());
+			rooms.add(room);
+		}
+		
+		return rooms;
+	}
+	
 // Func() =======================================================
 	// 유저 존재 확인.
 	private boolean checkUserExist(String userId, String name) {
@@ -306,17 +391,19 @@ public class DataBaseController {
 
 	private String createAuthToken(String userId) {
 		String generatedToken = jwt.generateToken(userId);
-		System.out.println(userId + " Token => "+generatedToken);
+		System.out.println(userId + " Token => " + generatedToken);
 		return generatedToken;
 	}
 
 	private boolean authorization(String token) {
 		String validToken = appDB.loginedUser.get(jwt.getUserIdFromToken(token));
-		if (validToken==null)return false;
-		else if (validToken.equals(token))return !jwt.isTokenExpired(validToken);
-		else return false;
-		
-		
+		if (validToken == null)
+			return false;
+		else if (validToken.equals(token))
+			return !jwt.isTokenExpired(validToken);
+		else
+			return false;
+
 //		String userId = null;
 //		try {
 //			Map<String, Object> map = new HashMap<String, Object>();
@@ -368,18 +455,18 @@ public class DataBaseController {
 		}
 
 		Hashtable<String, Room> ht = new Hashtable<String, Room>();
-		
+
 		ListIterator<Map<String, Object>> iter = rooms.listIterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			Map<String, Object> map = iter.next();
 			Room room = new Room();
-			room.setRoomId(Integer.toString((int)map.get("roomId")));
-			room.setName((String)map.get("name"));
-			room.setPassword((String)map.get("password"));
-			room.setLastMsgId((String)map.get("password"));
-			ht.put((String)Integer.toString((int)map.get("roomId")), room);
+			room.setRoomId(Integer.toString((int) map.get("roomId")));
+			room.setName((String) map.get("name"));
+			room.setPassword((String) map.get("password"));
+			room.setLastMsgId((int) map.get("lastMsgId"));
+			ht.put((String) Integer.toString((int) map.get("roomId")), room);
 		}
-		
+
 		LOG.info("[getCurrentRoomList()] END with SUCCESS");
 		return ht;
 	}

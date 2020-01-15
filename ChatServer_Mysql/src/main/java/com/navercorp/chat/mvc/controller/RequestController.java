@@ -101,9 +101,27 @@ public class RequestController {
 		return ResponseMapping(RequestType.POST, rc);
 	}
 
+//	string	token	user auth token
+//	string	name	room name
+//	string	password	room password. not essential
 	// 채팅방을 생성한다. 생성한 채팅방에 자동입장됨. name 은 중복이 불가능. password 는 선택사항
-//	@RequestMapping(value = "/room", method = RequestMethod.POST)
-//	public Map<String, String> createChatRoom()
+	@RequestMapping(value = "/room", method = RequestMethod.POST)
+	public Map<String, Object> createChatRoom(@RequestParam("token") String token, @RequestParam("name") String rname,
+			@RequestParam(value = "password", required = false) String rpassword) {
+
+		// rpassword encryption.
+
+		Map<String, Object> response = dbc.createChatRoom(token, rname, rpassword);
+
+		if (response == null) {
+			response = new HashMap<String, Object>();
+			response.put("responseCode", 1);
+		} else {// Success.
+			response.put("responseCode", 0);
+		}
+
+		return response;
+	}
 
 //DELETE======================================================================
 	// 회원탈퇴
@@ -186,6 +204,22 @@ public class RequestController {
 //		responseMap.put("users", (Object) users);
 //		return responseMap;
 //	}
+	
+	//채팅방 조회 
+	@RequestMapping(value = "/room", method = RequestMethod.GET)
+	public Map<String, Object> getRoomList(@RequestParam("token") String token) throws Exception {
+		Map<String, Object> response = new HashMap<String, Object>();
+
+		List<Map<String, String>> rooms = dbc.getRoomList(token);
+		if (rooms == null) {
+			response.put("responseCode", 1);
+		} else {// Success.
+			response.put("rooms", rooms);
+			response.put("responseCode", 0);
+		}
+
+		return response;
+	}
 
 //TEST===================================================================
 
