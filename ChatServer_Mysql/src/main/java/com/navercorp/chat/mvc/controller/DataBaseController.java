@@ -284,9 +284,6 @@ public class DataBaseController {
 	}
 
 	private boolean authorization(String token) {
-		if (true)
-			return true;
-
 		UserInfo user = new UserInfo();
 		try {
 			Map<String, Object> map = new HashMap<String, Object>();
