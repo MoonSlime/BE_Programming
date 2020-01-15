@@ -31,21 +31,22 @@ public class Application extends WebApplicationContextServletContextAwareProcess
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
 
-		UserInfo user = new UserInfo();
-		user.setUserId("chankyu");
-		user.setPassword("password");
-		
-		JwtTokenUtil jwt = new JwtTokenUtil();
-		String token = jwt.generateToken(user);
-		System.out.println(token);
-		
-		Date expirationDate = jwt.getExpirationDateFromToken(token);
-		System.out.println(expirationDate);
-		
-		String userId = jwt.getUserIdFromToken(token);
-		System.out.println(userId);
-		
-		Boolean validate = jwt.validateToken(token, user);
-		System.out.println(validate);
+		//Before is Token Example.
+//		UserInfo user = new UserInfo();
+//		user.setUserId("chankyu");
+//		user.setPassword("password");
+//		
+//		JwtTokenUtil jwt = new JwtTokenUtil();
+//		String token = jwt.generateToken(user);
+//		System.out.println(token);
+//		
+//		Date expirationDate = jwt.getExpirationDateFromToken(token);
+//		System.out.println(expirationDate);
+//		
+//		String userId = jwt.getUserIdFromToken(token);
+//		System.out.println(userId);
+//		
+//		Boolean validate = jwt.validateToken(token, user);
+//		System.out.println(validate);
 	}
 }

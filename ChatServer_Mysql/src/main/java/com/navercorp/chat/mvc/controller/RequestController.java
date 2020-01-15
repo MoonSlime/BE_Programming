@@ -10,17 +10,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.navercorp.chat.mvc.model.UserInfo;
+import com.navercorp.chat.service.JwtResponse;
 
 @RestController
 @Configuration
 @ComponentScan("com.navercorp.chat.dao")
 @ComponentScan("com.navercorp.chat.mvc.controller")
+@ComponentScan("com.navercorp.chat.service")
+//@ComponentScan("com.navercorp.chat.service")
 public class RequestController {
 	private static final Logger LOG = Logger.getLogger(RequestController.class.getName());
 	
@@ -81,7 +85,7 @@ public class RequestController {
 		LOG.info("[signup()] POST : /signIn END");
 		return ResponseMapping(RequestType.POST, rc);
 	}
-
+	
 	// 로그인
 	@RequestMapping(value = "/login", method = RequestMethod.POST)
 	public Map<String, String> login(UserInfo user, Model model) throws Exception {

@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
 
 import com.navercorp.chat.mvc.model.UserInfo;
 
@@ -14,11 +14,13 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+@Component
 public class JwtTokenUtil implements Serializable {
 	private static final long serialVersionUID = -2550185165626007488L;
 	public static final long JWT_TOKEN_VALIDITY = 5 * 60 * 60;
 	
-	private String secret = "javainuse";
+//	private String secret = "javainuse";
+	private String secret = "kr19815";
 
 	// retrieve username from jwt token
 	public String getUserIdFromToken(String token) {
@@ -41,7 +43,7 @@ public class JwtTokenUtil implements Serializable {
 	}
 
 	// check if the token has expired
-	private Boolean isTokenExpired(String token) {
+	public Boolean isTokenExpired(String token) {
 		final Date expiration = getExpirationDateFromToken(token);
 		return expiration.before(new Date());
 	}
