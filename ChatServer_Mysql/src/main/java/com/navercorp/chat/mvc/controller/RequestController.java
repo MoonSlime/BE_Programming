@@ -10,27 +10,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.navercorp.chat.mvc.model.User;
-import com.navercorp.chat.service.JwtResponse;
 
 @RestController
 @Configuration
-@ComponentScan("com.navercorp.chat.dao")
 @ComponentScan("com.navercorp.chat.mvc.controller")
-@ComponentScan("com.navercorp.chat.service")
-//@ComponentScan("com.navercorp.chat.service")
 public class RequestController {
 	private static final Logger LOG = Logger.getLogger(RequestController.class.getName());
-	
+
 	@Autowired
 	private DataBaseController dbc;
-	
+
 	enum RequestType {
 		POST, PUT, GET, DELETE
 	}
@@ -76,39 +69,52 @@ public class RequestController {
 //POST======================================================================
 	// 회원가입
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public Map<String, String> signup(User user, Model model) throws Exception {
+	public Map<String, String> signup(@RequestParam("userId") String userId, @RequestParam("password") String password,
+			@RequestParam("name") String name) throws Exception {
+
+		// password Encryption.
+
 		LOG.info("[signup()] POST : /signIn START");
 		ResponseCode rc = ResponseCode.FAIL;
-		if (dbc.signup(user)) {
+		if (dbc.signup(userId, password, name)) {
 			rc = ResponseCode.SUCCESS;
 		}
 		LOG.info("[signup()] POST : /signIn END");
 		return ResponseMapping(RequestType.POST, rc);
 	}
-	
+
 	// 로그인
 	@RequestMapping(value = "/login", method = RequestMethod.POST)
-	public Map<String, String> login(User user, Model model) throws Exception {
+	public Map<String, String> login(@RequestParam("userId") String userId, @RequestParam("password") String password)
+			throws Exception {
+
+		// password Encryption.
+
+		String token = null;
+
 		LOG.info("[login()] POST : /login START");
 		ResponseCode rc = ResponseCode.SUCCESS;
-		if ((user = dbc.login(user))==null) {
+		if ((token = dbc.login(userId, password)) == null) {
 			rc = ResponseCode.FAIL;
 		}
 		LOG.info("[login()] POST : /login END");
 		return ResponseMapping(RequestType.POST, rc);
 	}
 
-	//채팅방을 생성한다. 생성한 채팅방에 자동입장됨. name 은 중복이 불가능. password 는 선택사항
+	// 채팅방을 생성한다. 생성한 채팅방에 자동입장됨. name 은 중복이 불가능. password 는 선택사항
 //	@RequestMapping(value = "/room", method = RequestMethod.POST)
 //	public Map<String, String> createChatRoom()
-	
+
 //DELETE======================================================================
 	// 회원탈퇴
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
-	public Map<String, String> signout(User user, Model model) throws Exception {
+	public Map<String, String> signout(@RequestParam("token") String token) throws Exception {
+
+		String userId = null;
+
 		LOG.info("[signout()] DELETE : /user START");
 		ResponseCode rc = ResponseCode.SUCCESS;
-		if ((user = dbc.signout(user))==null) {
+		if ((userId = dbc.signout(token)) == null) {
 			rc = ResponseCode.FAIL;
 		}
 		LOG.info("[signout()] DELETE : /user END");
@@ -117,10 +123,12 @@ public class RequestController {
 
 	// 로그아웃
 	@RequestMapping(value = "/logout", method = RequestMethod.DELETE)
-	public Map<String, String> logout(User user, Model model) throws Exception {
+	public Map<String, String> logout(@RequestParam("token") String token) throws Exception {
+		String userId = null;
+
 		LOG.info("[logout()] DELETE : /logout START");
 		ResponseCode rc = ResponseCode.SUCCESS;
-		if ((user = dbc.logout(user))==null) {
+		if ((userId = dbc.logout(token)) == null) {
 			rc = ResponseCode.FAIL;
 		}
 		LOG.info("[logout()] DELETE: /logout END");
@@ -129,66 +137,69 @@ public class RequestController {
 
 //PUT========================================================================
 	// 유저 정보 변경
+	// return : userId, name
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
-	public Map<String, String> updateUserInfo(User user, Model model) throws Exception {
+	public Map<String, String> updateUserInfo(@RequestParam("token") String token, @RequestParam("name") String name)
+			throws Exception {
+		Map<String, Object> response = null;
+
 		LOG.info("[updateUserInfo()] PUT : /user START");
 		ResponseCode rc = ResponseCode.SUCCESS;
-		if ((user = dbc.updateUserInfo(user))==null) {
+		if ((response = dbc.updateUserInfo(token, name)) == null) {
 			rc = ResponseCode.FAIL;
 		}
+
 		LOG.info("[updateUserInfo()] PUT : /user END");
 		return ResponseMapping(RequestType.PUT, rc);
 	}
 
-
 //GET========================================================================
-	// 유저 목록 조회 
+	// 유저 목록 조회
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public Map<String, Object> getUserList(User user, Model model) throws Exception {
+	public Map<String, Object> getUserList(@RequestParam("token") String token) throws Exception {
 		LOG.info("[getUserList()] GET : /user START");
 		ResponseCode rc = ResponseCode.SUCCESS;
 		List<Map<String, Object>> users = null;
-		if ((users = dbc.getUserList(user))==null) {
+		if ((users = dbc.getUserList(token)) == null) {
 			rc = ResponseCode.FAIL;
 		}
+
 		LOG.info("[getUserList()] GET : /user END");
 		Map<String, Object> responseMap = new HashMap<String, Object>();
-		responseMap.put("responseCode", (Object)rc);
-		responseMap.put("users", (Object)users);
+		responseMap.put("responseCode", (Object) rc);
+		responseMap.put("users", (Object) users);
 		return responseMap;
-//		return ResponseMapping(RequestType.GET, rc);
 	}
 
-	// 로그인한 유저 목록 조회 
-	@RequestMapping(value = "/user/login", method = RequestMethod.GET)
-	public Map<String, Object> getLoginedUserList(User user, Model model) throws Exception {
-		LOG.info("[getLoginedUserList()] GET : /user/login START");
-		ResponseCode rc = ResponseCode.SUCCESS;
-		List<Map<String, Object>> users = null;
-		if ((users = dbc.getLoginedUserList(user))==null) {
-			rc = ResponseCode.FAIL;
-		}
-		LOG.info("[getLoginedUserList()] GET : /user/login END");
-		Map<String, Object> responseMap = new HashMap<String, Object>();
-		responseMap.put("responseCode", (Object)rc);
-		responseMap.put("users", (Object)users);
-		return responseMap;
-//		return ResponseMapping(RequestType.GET, rc);
-	}
-	
+	// 로그인한 유저 목록 조회
+//	@RequestMapping(value = "/user/login", method = RequestMethod.GET)
+//	public Map<String, Object> getLoginedUserList(@RequestParam("token") String token) throws Exception {
+//		LOG.info("[getLoginedUserList()] GET : /user/login START");
+//		ResponseCode rc = ResponseCode.SUCCESS;
+//		List<Map<String, Object>> users = null;
+//		if ((users = dbc.getLoginedUserList(token)) == null) {
+//			rc = ResponseCode.FAIL;
+//		}
+//		LOG.info("[getLoginedUserList()] GET : /user/login END");
+//		Map<String, Object> responseMap = new HashMap<String, Object>();
+//		responseMap.put("responseCode", (Object) rc);
+//		responseMap.put("users", (Object) users);
+//		return responseMap;
+//	}
+
 //TEST===================================================================
-	
+
 	@Autowired
 	testDaoController tdc;
-	
+
 	@RequestMapping(value = "/test1", method = RequestMethod.GET)
 	public Map<String, String> test1() {
-		
+
 		tdc.run();
-		
+
 		return ResponseMapping(RequestType.POST, ResponseCode.SUCCESS);
 	}
-	
+
 	@RequestMapping(value = "/h", method = RequestMethod.GET)
 	public Map<String, String> home(Locale locale) {
 		System.out.println("[LOG] == start home ==");

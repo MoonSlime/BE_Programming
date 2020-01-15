@@ -1,9 +1,9 @@
 /Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/mvc/controller/RequestController.java
+/Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/mvc/model/Room.java
 /Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/service/ChatService.java
-/Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/mvc/model/RoomInfo.java
 /Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/dao/testDao.java
 /Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/service/JwtTokenUtil.java
-/Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/service/JwtResponse.java
+/Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/ApplicationDatabase.java
 /Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/mvc/controller/DataBaseController.java
 /Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/mvc/model/User.java
 /Users/user/Documents/GitHub/BE_Programming/ChatServer_Mysql/src/main/java/com/navercorp/chat/Application.java

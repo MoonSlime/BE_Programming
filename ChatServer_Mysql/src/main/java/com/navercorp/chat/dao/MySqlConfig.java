@@ -12,7 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class MySqlConfig{
 	
 	public MySqlConfig() {
-		
+		System.out.println("MySqlConfig Created");
 	}
 	
 //	public MySqlConfig() throws Exception {

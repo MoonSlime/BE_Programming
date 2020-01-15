@@ -13,7 +13,7 @@ import lombok.ToString;
 //@Builder
 public class User {
 	private String userId; // user id
-	private String password; // password
+	private String password; // password must be hidden.!!
 	private String name; // chat name
 
 //	@Singular("token") // can push(data) oncely
