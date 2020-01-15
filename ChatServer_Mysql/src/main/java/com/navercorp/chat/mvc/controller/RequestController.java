@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.navercorp.chat.mvc.model.UserInfo;
+import com.navercorp.chat.mvc.model.User;
 import com.navercorp.chat.service.JwtResponse;
 
 @RestController
@@ -76,7 +76,7 @@ public class RequestController {
 //POST======================================================================
 	// 회원가입
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public Map<String, String> signup(UserInfo user, Model model) throws Exception {
+	public Map<String, String> signup(User user, Model model) throws Exception {
 		LOG.info("[signup()] POST : /signIn START");
 		ResponseCode rc = ResponseCode.FAIL;
 		if (dbc.signup(user)) {
@@ -88,7 +88,7 @@ public class RequestController {
 	
 	// 로그인
 	@RequestMapping(value = "/login", method = RequestMethod.POST)
-	public Map<String, String> login(UserInfo user, Model model) throws Exception {
+	public Map<String, String> login(User user, Model model) throws Exception {
 		LOG.info("[login()] POST : /login START");
 		ResponseCode rc = ResponseCode.SUCCESS;
 		if ((user = dbc.login(user))==null) {
@@ -98,10 +98,14 @@ public class RequestController {
 		return ResponseMapping(RequestType.POST, rc);
 	}
 
+	//채팅방을 생성한다. 생성한 채팅방에 자동입장됨. name 은 중복이 불가능. password 는 선택사항
+//	@RequestMapping(value = "/room", method = RequestMethod.POST)
+//	public Map<String, String> createChatRoom()
+	
 //DELETE======================================================================
 	// 회원탈퇴
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
-	public Map<String, String> signout(UserInfo user, Model model) throws Exception {
+	public Map<String, String> signout(User user, Model model) throws Exception {
 		LOG.info("[signout()] DELETE : /user START");
 		ResponseCode rc = ResponseCode.SUCCESS;
 		if ((user = dbc.signout(user))==null) {
@@ -113,7 +117,7 @@ public class RequestController {
 
 	// 로그아웃
 	@RequestMapping(value = "/logout", method = RequestMethod.DELETE)
-	public Map<String, String> logout(UserInfo user, Model model) throws Exception {
+	public Map<String, String> logout(User user, Model model) throws Exception {
 		LOG.info("[logout()] DELETE : /logout START");
 		ResponseCode rc = ResponseCode.SUCCESS;
 		if ((user = dbc.logout(user))==null) {
@@ -126,7 +130,7 @@ public class RequestController {
 //PUT========================================================================
 	// 유저 정보 변경
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
-	public Map<String, String> updateUserInfo(UserInfo user, Model model) throws Exception {
+	public Map<String, String> updateUserInfo(User user, Model model) throws Exception {
 		LOG.info("[updateUserInfo()] PUT : /user START");
 		ResponseCode rc = ResponseCode.SUCCESS;
 		if ((user = dbc.updateUserInfo(user))==null) {
@@ -140,7 +144,7 @@ public class RequestController {
 //GET========================================================================
 	// 유저 목록 조회 
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public Map<String, Object> getUserList(UserInfo user, Model model) throws Exception {
+	public Map<String, Object> getUserList(User user, Model model) throws Exception {
 		LOG.info("[getUserList()] GET : /user START");
 		ResponseCode rc = ResponseCode.SUCCESS;
 		List<Map<String, Object>> users = null;
@@ -157,7 +161,7 @@ public class RequestController {
 
 	// 로그인한 유저 목록 조회 
 	@RequestMapping(value = "/user/login", method = RequestMethod.GET)
-	public Map<String, Object> getLoginedUserList(UserInfo user, Model model) throws Exception {
+	public Map<String, Object> getLoginedUserList(User user, Model model) throws Exception {
 		LOG.info("[getLoginedUserList()] GET : /user/login START");
 		ResponseCode rc = ResponseCode.SUCCESS;
 		List<Map<String, Object>> users = null;

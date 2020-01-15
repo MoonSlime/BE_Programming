@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.web.servlet.context.WebApplicationContextServletContextAwareProcessor;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
-import com.navercorp.chat.mvc.model.UserInfo;
+import com.navercorp.chat.mvc.model.User;
 import com.navercorp.chat.service.JwtTokenUtil;
 
 @SpringBootApplication(scanBasePackages = { "com.navercorp.chat.mvc.controller" })
@@ -26,7 +26,7 @@ public class Application extends WebApplicationContextServletContextAwareProcess
 		// TODO Auto-generated constructor stub
 	}
 
-	private List<UserInfo> users;
+	private List<User> users;
 
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);

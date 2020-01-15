@@ -11,7 +11,7 @@ import lombok.ToString;
 
 @Data
 //@Builder
-public class UserInfo {
+public class User {
 	private String userId; // user id
 	private String password; // password
 	private String name; // chat name

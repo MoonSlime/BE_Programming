@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import com.navercorp.chat.mvc.model.UserInfo;
+import com.navercorp.chat.mvc.model.User;
 import com.navercorp.chat.service.JwtTokenUtil;
 
 @Component
@@ -37,7 +37,7 @@ public class DataBaseController {
 	// 유저 생성(회원가입)
 	// params : userId, password, name
 	// return : SUCCESS or FAIL
-	public Boolean signup(UserInfo user) throws Exception {
+	public Boolean signup(User user) throws Exception {
 		LOG.info("[signup()] START");
 
 		if (checkUserExist(user.getUserId(), user.getName())) {
@@ -74,7 +74,7 @@ public class DataBaseController {
 	// params : userId, password
 	// return : user's auth token
 	// if(FAIL) : return null;
-	public UserInfo login(UserInfo user) throws Exception {
+	public User login(User user) throws Exception {
 		LOG.info("[login()] START");
 
 		// check userId & password
@@ -105,7 +105,7 @@ public class DataBaseController {
 	// params : authToken
 	// return : userId
 	// if(FAIL) : return null;
-	public UserInfo logout(UserInfo user) throws Exception {
+	public User logout(User user) throws Exception {
 		LOG.info("[logout()] START");
 
 		if (!authorization(user.getToken())) {
@@ -133,7 +133,7 @@ public class DataBaseController {
 	// params : authToken
 	// return : userId
 	// if(FAIL) : return null;
-	public UserInfo signout(UserInfo user) throws Exception {
+	public User signout(User user) throws Exception {
 		LOG.info("[signout()] START");
 
 		if (!authorization(user.getToken())) {
@@ -161,7 +161,7 @@ public class DataBaseController {
 	// params : token, name
 	// return : userId, name
 	// if(FAIL) : return null;
-	public UserInfo updateUserInfo(UserInfo user) throws Exception {
+	public User updateUserInfo(User user) throws Exception {
 		LOG.info("[updateUserInfo()] START");
 
 		if (!authorization(user.getToken())) {
@@ -192,7 +192,7 @@ public class DataBaseController {
 	// params : token
 	// return : map<userId, name>
 	// if(FAIL) : return null;
-	public List<Map<String, Object>> getUserList(UserInfo user) throws Exception {
+	public List<Map<String, Object>> getUserList(User user) throws Exception {
 		LOG.info("[getUserList()] START");
 
 		if (!authorization(user.getToken())) {
@@ -217,7 +217,7 @@ public class DataBaseController {
 	// params : token
 	// return : map<userId, name>
 	// if(FAIL) : return null;
-	public List<Map<String, Object>> getLoginedUserList(UserInfo user) throws Exception {
+	public List<Map<String, Object>> getLoginedUserList(User user) throws Exception {
 		LOG.info("[getLloginedUserList()] START");
 
 		if (!authorization(user.getToken())) {
@@ -279,17 +279,17 @@ public class DataBaseController {
 		return true;
 	}
 
-	private String createAuthToken(UserInfo user) {
+	private String createAuthToken(User user) {
 		return jwt.generateToken(user);
 	}
 
 	private boolean authorization(String token) {
-		UserInfo user = new UserInfo();
+		User user = new User();
 		try {
 			Map<String, Object> map = new HashMap<String, Object>();
 			String sql = String.format("SELECT userId FROM pgtDB.CHAT_AUTH_TB WHERE token='%s'", token);
 			map = jdb.queryForMap(sql);
-			user = new UserInfo();
+			user = new User();
 			user.setUserId((String) map.get("userId"));
 		} catch (EmptyResultDataAccessException e) {
 			LOG.severe("Authorization FAIL");

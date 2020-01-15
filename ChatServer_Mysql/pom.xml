@@ -75,10 +75,8 @@
 		</dependency>
 
 		<!-- JWT Library For Auth Token -->
-		<!-- <dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency> -->
+		<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-security</artifactId> 
+			</dependency> -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt</artifactId>
@@ -90,11 +88,11 @@
 			<artifactId>jaxb-runtime</artifactId>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/com.google.code.spring-crypto-utils/spring-crypto-utils -->
+		<!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-crypto -->
 		<dependency>
-			<groupId>com.google.code.spring-crypto-utils</groupId>
-			<artifactId>spring-crypto-utils</artifactId>
-			<version>1.4.0</version>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+			<version>5.2.1.RELEASE</version>
 		</dependency>
 	</dependencies>
 

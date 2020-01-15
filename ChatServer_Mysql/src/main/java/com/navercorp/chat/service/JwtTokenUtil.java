@@ -8,7 +8,7 @@ import java.util.function.Function;
 
 import org.springframework.stereotype.Component;
 
-import com.navercorp.chat.mvc.model.UserInfo;
+import com.navercorp.chat.mvc.model.User;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -56,7 +56,7 @@ public class JwtTokenUtil implements Serializable {
 	
 
 	// generate token for user
-	public String generateToken(UserInfo user) {
+	public String generateToken(User user) {
 		Map<String, Object> claims = new HashMap<>();
 		return doGenerateToken(claims, user.getUserId());
 	}
@@ -74,7 +74,7 @@ public class JwtTokenUtil implements Serializable {
 	}
 
 	// validate token
-	public Boolean validateToken(String token, UserInfo user) {
+	public Boolean validateToken(String token, User user) {
 		final String userId = getUserIdFromToken(token);
 		return (userId.equals(user.getUserId()) && !isTokenExpired(token));
 	}
