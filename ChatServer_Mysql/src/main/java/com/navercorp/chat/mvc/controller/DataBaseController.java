@@ -86,16 +86,7 @@ public class DataBaseController {
 		// create & set token
 		user.setToken(createAuthToken(user));
 
-//		INSERT INTO tb_member (
-//			      mem_name
-//			    , mem_job
-//			) VALUES (
-//			      '홍길동'
-//			    , '기획자'
-//			) 
-//			ON DUPLICATE KEY UPDATE 
-//			    mem_job = '개발자';
-
+		// INSERT TOKEN to CHAT_AUTH_TB. or UPDATE TOKEN to CHAT_AUTH_TB.
 		try {
 			String sql = String.format(
 					"INSERT INTO pgtDB.CHAT_AUTH_TB (userId, token) VALUES ('%s','%s') ON DUPLICATE KEY UPDATE token='%s'",
@@ -105,33 +96,7 @@ public class DataBaseController {
 			LOG.severe("[login()] END with FAIL");
 			return null;
 		}
-//
-//		// INSERT TOKEN to CHAT_AUTH_TB. or UPDATE TOKEN to CHAT_AUTH_TB.
-//		int updateCnt = 0;
-//		try {// UPDATE
-//			String sql = String.format("UPDATE pgtDB.CHAT_AUTH_TB SET token = '%s' WHERE userId = '%s'",
-//					user.getToken(), user.getUserId());
-//			updateCnt = jdb.update(sql);
-//			System.out.println("Update Field = " + updateCnt);
-//		} catch (EmptyResultDataAccessException e1) {// If Data is not exist.
-//			LOG.severe("[login()] END with FAIL");
-//			return null;
-//		}
-//
-//		if (updateCnt > 1) {
-//			LOG.info("[login()] END with SUCCESS");
-//			return user;
-//		}
-//
-//		try {
-//			String sql = String.format("INSERT INTO pgtDB.CHAT_AUTH_TB (userId, token) VALUES ('%s', '%s')",
-//					user.getUserId(), user.getToken());
-//			System.out.println("Update Field = " + jdb.update(sql));
-//		} catch (EmptyResultDataAccessException e2) {
-//			LOG.severe("[login()] END with FAIL");
-//			return null;
-//		}
-
+		
 		LOG.info("[login()] END with SUCCESS");
 		return user;
 	}
