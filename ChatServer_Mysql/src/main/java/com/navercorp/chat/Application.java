@@ -1,5 +1,7 @@
 package com.navercorp.chat;
 
+import java.sql.Timestamp;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -25,5 +27,11 @@ public class Application implements ApplicationListener<ApplicationStartedEvent>
 	public void onApplicationEvent(ApplicationStartedEvent event) {
 		// TODO Auto-generated method stub
 		appDB.init();
+
+//		Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+//		System.out.println(timestamp);
+//		System.out.println(currentTimeNanos());
 	}
+	
+	
 }

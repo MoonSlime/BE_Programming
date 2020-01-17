@@ -32,9 +32,9 @@ public class ApplicationDatabase{
 		}
 		
 		//TEST
-		for( String key : createdRoom.keySet() ){
-			System.out.println( String.format("키 : %s, 값 : %s", key, createdRoom.get(key)) );
-		}
+//		for( String key : createdRoom.keySet() ){
+//			System.out.println( String.format("키 : %s, 값 : %s", key, createdRoom.get(key)) );
+//		}
 	}
 	
 	private boolean updateUserToDbServer() {

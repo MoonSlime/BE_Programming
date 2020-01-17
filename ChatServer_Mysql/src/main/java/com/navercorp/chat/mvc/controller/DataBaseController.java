@@ -1,5 +1,6 @@
 package com.navercorp.chat.mvc.controller;
 
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -39,6 +40,12 @@ public class DataBaseController {
 
 	// For Debug. Save Token to DB. IF(Deploy){It must be false.}
 	private boolean token_to_db = false;
+
+	private final static long currentTimeNanosOffset = (System.currentTimeMillis() * 1000000) - System.nanoTime();
+
+	public static long currentTimeNanos() {
+		return System.nanoTime() + currentTimeNanosOffset;
+	}
 
 // USER_DB_CONTROLL ==================================================	
 
@@ -199,8 +206,8 @@ public class DataBaseController {
 		// UPDATE DB.NAME_TB SET name = '%s' WHERE userId = '%s'
 		try {
 			String sql = String.format("UPDATE pgtDB.CHAT_NAME_TB SET name = '%s' WHERE userId='%s'", newName, userId);
-			jdb.update(sql);
-		} catch (EmptyResultDataAccessException e) {
+			jdb.update(sql);// => Can't input duplicate name.
+		} catch (Exception e) {
 			LOG.severe("FAIL with Update User Name ");
 			LOG.info("[updateUserInfo()] END with FAIL");
 			return null;
@@ -218,7 +225,7 @@ public class DataBaseController {
 	// params : token
 	// return : map<userId, name>
 	// if(FAIL) : return null;
-	public List<Map<String, Object>> getUserList(String token) throws Exception {
+	public List<Map<String, Object>> getUsers(String token) throws Exception {
 		LOG.info("[getUserList()] START");
 
 		if (!authorization(token)) {
@@ -243,7 +250,7 @@ public class DataBaseController {
 	// params : token
 	// return : map<userId, name>
 	// if(FAIL) : return null;
-	public List<Map<String, Object>> getLoginedUserList(String token) throws Exception {
+	public List<Map<String, Object>> getLoginedUsers(String token) throws Exception {
 		LOG.info("[getLloginedUserList()] START");
 
 		if (!authorization(token)) {
@@ -287,14 +294,27 @@ public class DataBaseController {
 			}
 		}
 
+		int lastMsgId = 0;
 		String roomId = null, userId = jwt.getUserIdFromToken(token), username = null;
+
+//		try {
+//			String sql = null;
+//			// getLastMsgId
+//			sql = String.format("SELECT MAX(lastMsgId) AS max_msgId FROM pgtDB.CHAT_ROOM_TB");
+//			lastMsgId = (int) jdb.queryForMap(sql).get("max_msgId");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			lastMsgId = 0;
+//		}
+
 		try {
 			String sql = null;
 			if (rpassword == null) {
-				sql = String.format("INSERT INTO pgtDB.CHAT_ROOM_TB (name) VALUES ('%s')", rname);
+				sql = String.format("INSERT INTO pgtDB.CHAT_ROOM_TB (name, lastMsgId) VALUES ('%s', '%d')", rname,
+						lastMsgId);
 			} else {
-				sql = String.format("INSERT INTO pgtDB.CHAT_ROOM_TB (name,password) VALUES ('%s','%s')", rname,
-						rpassword);
+				sql = String.format("INSERT INTO pgtDB.CHAT_ROOM_TB (name,password, lastMsgId) VALUES ('%s','%s','%d')",
+						rname, rpassword, lastMsgId);
 			}
 			jdb.update(sql);
 
@@ -328,16 +348,16 @@ public class DataBaseController {
 		return result;
 	}
 
-	//채팅방 조회 
-	//return : RoomList.
-	public List<Map<String, String>> getRoomList(String token) {
+	// 채팅방 조회
+	// return : RoomList.
+	public List<Map<String, String>> getRooms(String token) {
 		LOG.info("[getRoomList()] START");
 
 		if (!authorization(token)) {
 			LOG.info("[getRoomList()] END with FAIL");
 			return null;
 		}
-		
+
 		List<Map<String, String>> rooms = new Vector<Map<String, String>>();
 		for (String key : appDB.createdRoom.keySet()) {
 			Map<String, String> room = new HashMap<String, String>();
@@ -345,10 +365,275 @@ public class DataBaseController {
 			room.put("name", appDB.createdRoom.get(key).getName());
 			rooms.add(room);
 		}
-		
+
 		return rooms;
 	}
-	
+
+	public Map<String, Object> joinChatRoom(String token, String roomId, String password) {
+		LOG.info("[joinChatRoom()] START");
+
+		if (!authorization(token)) {
+			LOG.info("auth");
+			LOG.info("[joinChatRoom()] END with FAIL");
+			return null;
+		}
+
+		// roomId 존재 확인.
+		Room room = appDB.createdRoom.get(roomId);
+		if (room == null) {
+			LOG.info("no room");
+			LOG.info("[joinChatRoom()] END with FAIL");
+			return null;
+		}
+
+		// room pwd 확인.
+		if (room.getPassword() == null && password == null) {
+		} else if (room.getPassword() == null && password != null) {
+			LOG.info("pwd error 1");
+			LOG.info("[joinChatRoom()] END with FAIL");
+			return null;
+		} else if (room.getPassword() != null && password == null) {
+			LOG.info("pwd error 2");
+			LOG.info("[joinChatRoom()] END with FAIL");
+			return null;
+		} else if (!room.getPassword().equals(password)) {
+			LOG.info("pwd error 3");
+			LOG.info("[joinChatRoom()] END with FAIL");
+			return null;
+		}
+
+		// Join Table에서 userId, roomId 조회.
+		// if (있으면 에러)
+		// else(없으면 입장)
+
+		String userId = jwt.getUserIdFromToken(token);
+		String name = null;
+		try {
+//			INSERT INTO pgtDB.CHAT_AUTH_TB (userId, token) VALUES ('%s','%s') ON DUPLICATE KEY UPDATE token='%s'
+			String sql = String.format("SELECT roomId FROM CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
+					userId);
+			jdb.queryForMap(sql);
+			LOG.info("[joinChatRoom()] END with FAIL");
+			return null;
+		} catch (Exception e) {
+		}
+
+		try {
+			String sql = String.format(
+					"INSERT INTO pgtDB.CHAT_JOIN_TB (roomId, userId, joinMsgId, lastMsgId) VALUES ('%s','%s',%d,%d)",
+					roomId, userId, room.getLastMsgId() + 1, room.getLastMsgId() + 1);
+
+			if (jdb.update(sql) == 0) {
+				LOG.info("DE2");
+				LOG.info("[joinChatRoom()] END with FAIL");
+				return null;
+			}
+			sql = String.format("SELECT name FROM pgtDB.CHAT_NAME_TB WHERE userId='%s'", userId);
+			name = (String) jdb.queryForMap(sql).get("name");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("roomId", roomId);
+		result.put("name", room.getName());
+		result.put("msgId", room.getLastMsgId());
+		Map<String, Object> user = new HashMap<String, Object>();
+		user.put("userId", userId);
+		user.put("name", name);
+		result.put("users", user);
+
+		LOG.info("[joinChatRoom()] END with SUCCESS");
+		return result;
+	}
+
+	public boolean exitRoom(String token, String roomId) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return false;
+		}
+
+		// roomId 존재 확인.
+		Room room = appDB.createdRoom.get(roomId);
+		if (room == null) {
+			LOG.severe("room is not exist");
+			return false;
+		}
+
+		try {
+			String sql = String.format("DELETE FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
+					jwt.getUserIdFromToken(token));
+			if (jdb.update(sql) == 0) {
+				throw new Exception("user is not exist in the room");
+			}
+		} catch (Exception e) {
+			return false;
+		}
+
+		return true;
+	}
+
+	public List<Map<String, Object>> getMembers(String token, String roomId) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		// roomId 존재 확인.
+		Room room = appDB.createdRoom.get(roomId);
+		if (room == null) {
+			LOG.severe("room is not exist");
+			return null;
+		}
+
+		Map<String, Object> members = null;
+		List<Map<String, Object>> members2;
+		try {
+			String sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'",
+					roomId, jwt.getUserIdFromToken(token));
+			if (jdb.queryForMap(sql).size() != 1)
+				throw new Exception();
+
+			sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s'", roomId);
+			String sql2 = String.format("SELECT * FROM pgtDB.CHAT_NAME_TB WHERE userId IN (%s)", sql);
+//			members = jdb.queryForList(sql2);
+			members2 = jdb.queryForList(sql2);
+		} catch (Exception e) {
+			e.printStackTrace();
+			LOG.severe("query error");
+			return null;
+		}
+
+		return members2;
+	}
+
+	public Room updateRoomInfo(String token, String roomId, String rname, String password) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		// roomId 존재 확인.
+		Room room = appDB.createdRoom.get(roomId);
+		if (room == null) {
+			LOG.severe("room is not exist");
+			return null;
+		}
+
+		try {
+			String sql = null;
+			// 채팅방 멤버 확인.
+			sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
+					jwt.getUserIdFromToken(token));
+			if (jdb.queryForMap(sql).size() == 0)
+				throw new Exception("user is not memeber of this room");
+
+			if (rname != null) {
+				room.setName(rname);
+//				UPDATE `pgtDB`.`CHAT_ROOM_TB` SET `name` = 'abc' WHERE (`roomId` = '3') and (`name` = 'c');
+				sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET name='%s' WHERE roomId='%s'", rname, roomId);
+				if (jdb.update(sql) == 0)
+					throw new Exception("update table is not exist");
+			}
+
+			if (room.getPassword() == null && password != null) {
+				room.setPassword(password);
+				sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET password='%s' WHERE roomId='%s'", password, roomId);
+			} else if (room.getPassword() != null && password == null) {
+				room.setPassword(null);
+				sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET password=NULL WHERE roomId='%s'", roomId);
+			}
+			if (jdb.update(sql) == 0)
+				throw new Exception("update password fail");
+		} catch (Exception e) {
+			LOG.severe("sql query fail");
+			return null;
+		}
+
+		appDB.createdRoom.put(roomId, room);
+		return room;
+	}
+
+//	Map<String, Object> response = dbc.sendMsg(token, roomId, text, null);
+	public Map<String, Object> sendMsg(String token, String roomId, String text, String to) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		// roomId 존재 확인.
+		Room room = appDB.createdRoom.get(roomId);
+		if (room == null) {
+			LOG.severe("room is not exist");
+			return null;
+		}
+
+		int msgId = room.getLastMsgId() + 1;
+		long timestamp = currentTimeNanos();
+
+//		"INSERT INTO pgtDB.CHAT_USER_TB (userId, password) VALUES ('%s', '%s')"
+
+		try {
+			String sql = null;
+
+			// Check Room Member.
+			sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
+					jwt.getUserIdFromToken(token));
+			if (jdb.queryForMap(sql).size() == 0)
+				throw new Exception("user is not memeber of this room");
+
+			if (to != null) {
+				// Check Room Member.
+				sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
+						to);
+				if (jdb.queryForMap(sql).size() == 0)
+					throw new Exception("user is not memeber of this room");
+			}
+
+			if (to == null)
+				sql = String.format(
+						"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s','%s','%s')",
+						roomId, msgId, "talk", jwt.getUserIdFromToken(token), text, Long.toString(timestamp));
+			else
+				sql = String.format(
+						"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `to`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s', '%s','%s','%s')",
+						roomId, msgId, "whisper", jwt.getUserIdFromToken(token), to, text, Long.toString(timestamp));
+
+			if (jdb.update(sql) == 0) {
+				throw new Exception();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			LOG.severe("sql query fail-1");
+			return null;
+		}
+
+		try {
+			String sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET lastMsgId='%d' WHERE roomId='%s'", msgId, roomId);
+			if (jdb.update(sql) == 0)
+				throw new Exception();
+			room.setLastMsgId(msgId);
+		} catch (Exception e) {
+			LOG.severe("sql query fail-2");
+			return null;
+		}
+
+		Map<String, Object> msg = new HashMap<String, Object>();
+		msg.put("timestamp", timestamp);
+		msg.put("from", jwt.getUserIdFromToken(token));
+		msg.put("msgId", msgId);
+		msg.put("text", text);
+
+		if (to != null) {
+			msg.put("type", "whisper");
+			msg.put("to", to);
+		} else {
+			msg.put("type", "talk");
+		}
+
+		return msg;
+	}
+
 // Func() =======================================================
 	// 유저 존재 확인.
 	private boolean checkUserExist(String userId, String name) {
@@ -395,7 +680,7 @@ public class DataBaseController {
 		return generatedToken;
 	}
 
-	private boolean authorization(String token) {
+	public boolean authorization(String token) {
 		String validToken = appDB.loginedUser.get(jwt.getUserIdFromToken(token));
 		if (validToken == null)
 			return false;
