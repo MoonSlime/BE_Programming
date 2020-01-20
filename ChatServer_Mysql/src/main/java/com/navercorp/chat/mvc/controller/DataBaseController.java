@@ -418,10 +418,14 @@ public class DataBaseController {
 		} catch (Exception e) {
 		}
 
+		int lastMsgId = 0;
+		if (room.getLastMsgId() != 0) {
+			lastMsgId = room.getLastMsgId() + 1;
+		}
 		try {
 			String sql = String.format(
 					"INSERT INTO pgtDB.CHAT_JOIN_TB (roomId, userId, joinMsgId, lastMsgId) VALUES ('%s','%s',%d,%d)",
-					roomId, userId, room.getLastMsgId() + 1, room.getLastMsgId() + 1);
+					roomId, userId, lastMsgId, lastMsgId);
 
 			if (jdb.update(sql) == 0) {
 				LOG.info("DE2");
@@ -437,7 +441,7 @@ public class DataBaseController {
 		Map<String, Object> result = new HashMap<String, Object>();
 		result.put("roomId", roomId);
 		result.put("name", room.getName());
-		result.put("msgId", room.getLastMsgId());
+		result.put("msgId", lastMsgId);
 		Map<String, Object> user = new HashMap<String, Object>();
 		user.put("userId", userId);
 		user.put("name", name);
@@ -839,13 +843,14 @@ public class DataBaseController {
 
 	public boolean setRoomsLastMsgId(String roomId, int lastMsgId) {
 		try {
-			String sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET lastMsgId='%d' WHERE roomId='%s'", lastMsgId, roomId);
+			String sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET lastMsgId='%d' WHERE roomId='%s'", lastMsgId,
+					roomId);
 			if (jdb.update(sql) == 0)
 				throw new Exception();
 		} catch (Exception e) {
 			return false;
 		}
-		
+
 		return true;
 	}
 
