@@ -1,4 +1,4 @@
-package com.navercorp.chat.service;
+package com.navercorp.chat.util;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

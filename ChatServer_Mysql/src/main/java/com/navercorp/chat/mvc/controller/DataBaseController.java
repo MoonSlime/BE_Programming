@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.navercorp.chat.ApplicationDatabase;
 import com.navercorp.chat.mvc.model.Room;
-import com.navercorp.chat.service.JwtTokenUtil;
+import com.navercorp.chat.util.JwtTokenUtil;
 
 @Component
 @ComponentScan("com.navercorp.chat.dao")
@@ -350,7 +350,7 @@ public class DataBaseController {
 
 	// 채팅방 조회
 	// return : RoomList.
-	public List<Map<String, String>> getRooms(String token) {
+	public List<Map<String, Object>> getRooms(String token) {
 		LOG.info("[getRoomList()] START");
 
 		if (!authorization(token)) {
@@ -358,9 +358,9 @@ public class DataBaseController {
 			return null;
 		}
 
-		List<Map<String, String>> rooms = new Vector<Map<String, String>>();
+		List<Map<String, Object>> rooms = new Vector<Map<String, Object>>();
 		for (String key : appDB.createdRoom.keySet()) {
-			Map<String, String> room = new HashMap<String, String>();
+			Map<String, Object> room = new HashMap<String, Object>();
 			room.put("roomId", key);
 			room.put("name", appDB.createdRoom.get(key).getName());
 			rooms.add(room);
@@ -554,85 +554,85 @@ public class DataBaseController {
 		return room;
 	}
 
-//	Map<String, Object> response = dbc.sendMsg(token, roomId, text, null);
-	public Map<String, Object> sendMsg(String token, String roomId, String text, String to) {
-		if (!authorization(token)) {
-			LOG.severe("authorization fail");
-			return null;
-		}
-
-		// roomId 존재 확인.
-		Room room = appDB.createdRoom.get(roomId);
-		if (room == null) {
-			LOG.severe("room is not exist");
-			return null;
-		}
-
-		int msgId = room.getLastMsgId() + 1;
-		long timestamp = currentTimeNanos();
-
-//		"INSERT INTO pgtDB.CHAT_USER_TB (userId, password) VALUES ('%s', '%s')"
-
-		try {
-			String sql = null;
-
-			// Check Room Member.
-			sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
-					jwt.getUserIdFromToken(token));
-			if (jdb.queryForMap(sql).size() == 0)
-				throw new Exception("user is not memeber of this room");
-
-			if (to != null) {
-				// Check Room Member.
-				sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
-						to);
-				if (jdb.queryForMap(sql).size() == 0)
-					throw new Exception("user is not memeber of this room");
-			}
-
-			if (to == null)
-				sql = String.format(
-						"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s','%s','%s')",
-						roomId, msgId, "talk", jwt.getUserIdFromToken(token), text, Long.toString(timestamp));
-			else
-				sql = String.format(
-						"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `to`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s', '%s','%s','%s')",
-						roomId, msgId, "whisper", jwt.getUserIdFromToken(token), to, text, Long.toString(timestamp));
-
-			if (jdb.update(sql) == 0) {
-				throw new Exception();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			LOG.severe("sql query fail-1");
-			return null;
-		}
-
-		try {
-			String sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET lastMsgId='%d' WHERE roomId='%s'", msgId, roomId);
-			if (jdb.update(sql) == 0)
-				throw new Exception();
-			room.setLastMsgId(msgId);
-		} catch (Exception e) {
-			LOG.severe("sql query fail-2");
-			return null;
-		}
-
-		Map<String, Object> msg = new HashMap<String, Object>();
-		msg.put("timestamp", timestamp);
-		msg.put("from", jwt.getUserIdFromToken(token));
-		msg.put("msgId", msgId);
-		msg.put("text", text);
-
-		if (to != null) {
-			msg.put("type", "whisper");
-			msg.put("to", to);
-		} else {
-			msg.put("type", "talk");
-		}
-
-		return msg;
-	}
+////	Map<String, Object> response = dbc.sendMsg(token, roomId, text, null);
+//	public Map<String, Object> sendMsg(String token, String roomId, String text, String to) {
+//		if (!authorization(token)) {
+//			LOG.severe("authorization fail");
+//			return null;
+//		}
+//
+//		// roomId 존재 확인.
+//		Room room = appDB.createdRoom.get(roomId);
+//		if (room == null) {
+//			LOG.severe("room is not exist");
+//			return null;
+//		}
+//
+//		int msgId = room.getLastMsgId() + 1;
+//		long timestamp = currentTimeNanos();
+//
+////		"INSERT INTO pgtDB.CHAT_USER_TB (userId, password) VALUES ('%s', '%s')"
+//
+//		try {
+//			String sql = null;
+//
+//			// Check Room Member.
+//			sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
+//					jwt.getUserIdFromToken(token));
+//			if (jdb.queryForMap(sql).size() == 0)
+//				throw new Exception("user is not memeber of this room");
+//
+//			if (to != null) {
+//				// Check Room Member.
+//				sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'", roomId,
+//						to);
+//				if (jdb.queryForMap(sql).size() == 0)
+//					throw new Exception("user is not memeber of this room");
+//			}
+//
+//			if (to == null)
+//				sql = String.format(
+//						"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s','%s','%s')",
+//						roomId, msgId, "talk", jwt.getUserIdFromToken(token), text, Long.toString(timestamp));
+//			else
+//				sql = String.format(
+//						"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `to`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s', '%s','%s','%s')",
+//						roomId, msgId, "whisper", jwt.getUserIdFromToken(token), to, text, Long.toString(timestamp));
+//
+//			if (jdb.update(sql) == 0) {
+//				throw new Exception();
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			LOG.severe("sql query fail-1");
+//			return null;
+//		}
+//
+//		try {
+//			String sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET lastMsgId='%d' WHERE roomId='%s'", msgId, roomId);
+//			if (jdb.update(sql) == 0)
+//				throw new Exception();
+//			room.setLastMsgId(msgId);
+//		} catch (Exception e) {
+//			LOG.severe("sql query fail-2");
+//			return null;
+//		}
+//
+//		Map<String, Object> msg = new HashMap<String, Object>();
+//		msg.put("timestamp", timestamp);
+//		msg.put("from", jwt.getUserIdFromToken(token));
+//		msg.put("msgId", msgId);
+//		msg.put("text", text);
+//
+//		if (to != null) {
+//			msg.put("type", "whisper");
+//			msg.put("to", to);
+//		} else {
+//			msg.put("type", "talk");
+//		}
+//
+//		return msg;
+//	}
 
 // Func() =======================================================
 	// 유저 존재 확인.
@@ -754,5 +754,123 @@ public class DataBaseController {
 
 		LOG.info("[getCurrentRoomList()] END with SUCCESS");
 		return ht;
+	}
+	// ===========
+
+	public String getUserName(String userId) {
+		String userName = null;
+
+		try {
+			String sql = String.format("SELECT name FROM pgtDB.CHAT_NAME_TB  WHERE userId='%s'", userId);
+			userName = (String) jdb.queryForMap(sql).get("name");
+		} catch (Exception e) {
+			return null;
+		}
+
+		return userName;
+	}
+
+	public boolean checkUserIsRoomMember(String roomId, String userId) {
+		try {
+			// Check Room Member.
+			String sql = String.format("SELECT userId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'",
+					roomId, userId);
+			if (jdb.queryForMap(sql).size() == 0)
+				throw new Exception("user is not memeber of this room");
+		} catch (Exception e) {
+			return false;
+		}
+
+		return true;
+	}
+
+	public List<Map<String, Object>> getMsgs(String roomId, int msgId, String userName, String orderBy, String msgCnt) {
+		List<Map<String, Object>> msgs = null;
+		try {
+			String sql = null;
+			if (msgCnt.equals("all")) {
+				sql = String.format(
+						"SELECT timestamp, CHAT_TALK_TB.from, type, msgId AS id, text FROM pgtDB.CHAT_TALK_TB WHERE roomId='%s' AND msgId>='%d' AND (CHAT_TALK_TB.to IS NULL OR CHAT_TALK_TB.to = '%s')",
+						roomId, msgId, userName);
+			} else {
+				sql = String.format(
+						"SELECT timestamp, CHAT_TALK_TB.from, type, msgId AS id, text FROM pgtDB.CHAT_TALK_TB WHERE roomId='%s' AND msgId>='%d' AND (CHAT_TALK_TB.to IS NULL OR CHAT_TALK_TB.to = '%s') ORDER BY msgId %s LIMIT %s",
+						roomId, msgId, userName, orderBy, msgCnt);
+			}
+			msgs = jdb.queryForList(sql);
+
+			if (msgs.size() == 0)
+				throw new Exception("There are no Msg");
+		} catch (Exception e) {
+			LOG.info("getMsgs() Fail");
+			return null;
+		}
+
+		return msgs;
+	}
+
+	public List<Map<String, Object>> getRoomInfos(String userId) {
+		List<Map<String, Object>> roomIds = null;
+
+		try {
+			String sql = String.format("SELECT roomId, lastMsgId FROM pgtDB.CHAT_JOIN_TB WHERE userId='%s'", userId);
+			roomIds = jdb.queryForList(sql);
+		} catch (Exception e) {
+			LOG.info(e.getMessage());
+			return null;
+		}
+
+		return roomIds;
+	}
+
+	public boolean setLastMsgId(String roomId, String userId, int lastMsgId) {
+		try {
+			String sql = String.format("UPDATE pgtDB.CHAT_JOIN_TB SET lastMsgId='%d' WHERE roomId='%s' AND userId='%s'",
+					lastMsgId, roomId, userId);
+			if (jdb.update(sql) == 0)
+				throw new Exception("update fail");
+		} catch (Exception e) {
+			LOG.severe(e.getMessage());
+			return false;
+		}
+
+		return true;
+	}
+
+	public boolean setRoomsLastMsgId(String roomId, int lastMsgId) {
+		try {
+			String sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET lastMsgId='%d' WHERE roomId='%s'", lastMsgId, roomId);
+			if (jdb.update(sql) == 0)
+				throw new Exception();
+		} catch (Exception e) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	public boolean sendMsg2(String type, String roomId, int msgId, String from, String to, String text,
+			long timestamp) {
+		String sql = null;
+		if (type.equals("talk") && to == null) {
+			sql = String.format(
+					"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s','%s','%s')",
+					roomId, msgId, type, from, text, Long.toString(timestamp));
+		} else if (type.equals("whisper") && to != null) {
+			sql = String.format(
+					"INSERT INTO `pgtDB`.`CHAT_TALK_TB` (`roomId`, `msgId`, `type`, `from`, `to`, `text`, `timestamp`) VALUES ('%s','%d','%s','%s', '%s','%s','%s')",
+					roomId, msgId, type, from, to, text, Long.toString(timestamp));
+		} else
+			return false;
+
+		try {
+			if (jdb.update(sql) == 0)
+				throw new Exception("sendMsg is Fail");
+		} catch (Exception e) {
+			LOG.severe(e.getMessage());
+			return false;
+		}
+
+		return true;
 	}
 }

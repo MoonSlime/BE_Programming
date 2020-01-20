@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.navercorp.chat.mvc.model.Room;
+import com.navercorp.chat.service.ChatService;
 
 @RestController
 @Configuration
@@ -26,6 +27,9 @@ public class RequestController {
 	@Autowired
 	private DataBaseController dbc;
 
+	@Autowired
+	private ChatService cs;
+	
 	enum RequestType {
 		POST, PUT, GET, DELETE
 	}
@@ -93,19 +97,18 @@ public class RequestController {
 		// password Encryption.
 
 		Map<String, Object> response = new HashMap<String, Object>();
-	
-		String token=null;
+
+		String token = null;
 		if ((token = dbc.login(userId, password)) == null) {
-			LOG.info("[login()] POST : /login => FAIL");	
+			LOG.info("[login()] POST : /login => FAIL");
 			response.put("responseCode", 1);
-		}
-		else {
-			LOG.info("[login()] POST : /login => SUCCESS");	
+		} else {
+			LOG.info("[login()] POST : /login => SUCCESS");
 			response.put("responseCode", 0);
 			response.put("token", token);
 		}
-		
-		LOG.info("[login()] POST : /login END");		
+
+		LOG.info("[login()] POST : /login END");
 		return response;
 	}
 
@@ -117,7 +120,7 @@ public class RequestController {
 	public Map<String, Object> createChatRoom(@RequestParam("token") String token, @RequestParam("name") String rname,
 			@RequestParam(value = "password", required = false) String rpassword) {
 		LOG.info("[createChatRoom()] POST : /room START");
-		
+
 		// rpassword encryption.
 
 		Map<String, Object> response = dbc.createChatRoom(token, rname, rpassword);
@@ -131,7 +134,7 @@ public class RequestController {
 			response.put("responseCode", 0);
 		}
 
-		LOG.info("[createChatRoom()] POST : /room END");	
+		LOG.info("[createChatRoom()] POST : /room END");
 		return response;
 	}
 
@@ -157,11 +160,11 @@ public class RequestController {
 	// 대화(메시지 전송)
 	@RequestMapping(value = "/room/talk", method = RequestMethod.POST)
 	public Map<String, Object> sendMsg(@RequestParam("token") String token, @RequestParam("roomId") String roomId,
-			@RequestParam("text") String text) throws Exception {
+			@RequestParam(value = "text", required = true) String text) throws Exception {
 		LOG.info("[sendMsg()] POST : /room/talk START");
-		
+
 		Map<String, Object> response = new HashMap<String, Object>();
-		Map<String, Object> msg = dbc.sendMsg(token, roomId, text, null);
+		Map<String, Object> msg = cs.sendMsg(token, "talk", roomId, null, text);
 
 		if (msg == null) {
 			LOG.info("[sendMsg()] POST : /room/talk => FAIL");
@@ -179,13 +182,14 @@ public class RequestController {
 
 	// 귓속말(메시지 전송)
 	@RequestMapping(value = "/room/whisper", method = RequestMethod.POST)
-	public Map<String, Object> sendWhisperMsg(@RequestParam("token") String token, @RequestParam("roomId") String roomId,
-			@RequestParam("to") String to, @RequestParam("text") String text) throws Exception {
+	public Map<String, Object> sendWhisperMsg(@RequestParam("token") String token,
+			@RequestParam("roomId") String roomId, @RequestParam("to") String to, @RequestParam("text") String text)
+			throws Exception {
 		LOG.info("[sendMsg()] POST : /room/whisper START");
-		
-		Map<String, Object> response = new HashMap<String, Object>();
-		Map<String, Object> msg = dbc.sendMsg(token, roomId, text, to);
 
+		Map<String, Object> msg = cs.sendMsg(token, "whisper", roomId, to, text);
+
+		Map<String, Object> response = new HashMap<String, Object>();
 		if (msg == null) {
 			LOG.info("[sendMsg()] POST : /room/talk => FAIL");
 			response.put("responseCode", 1);
@@ -277,15 +281,14 @@ public class RequestController {
 			@RequestParam(value = "password", required = false) String password) throws Exception {
 		LOG.info("[updateRoomInfo()] PUT : /room START");
 		Map<String, Object> response = new HashMap<String, Object>();
-		
+
 		Room room = dbc.updateRoomInfo(token, roomId, rname, password);
 		if (room != null) {
 			LOG.info("[updateRoomInfo()] PUT : /room => SUCCESS");
 			response.put("responseCode", 0);
 			response.put("roomId", room.getRoomId());
 			response.put("name", room.getName());
-		}
-		else {
+		} else {
 			LOG.info("[updateRoomInfo()] PUT : /room => FAIL");
 			response.put("responseCode", 1);
 		}
@@ -332,10 +335,9 @@ public class RequestController {
 	@RequestMapping(value = "/room", method = RequestMethod.GET)
 	public Map<String, Object> getRooms(@RequestParam("token") String token) throws Exception {
 		LOG.info("[getRooms()] GET : /room START");
-		
-		Map<String, Object> response = new HashMap<String, Object>();
 
-		List<Map<String, String>> rooms = dbc.getRooms(token);
+		Map<String, Object> response = new HashMap<String, Object>();
+		List<Map<String,Object>> rooms = dbc.getRooms(token);
 		if (rooms == null) {
 			LOG.info("[getRooms()] GET : /room => FAIL");
 			response.put("responseCode", 1);
@@ -354,7 +356,7 @@ public class RequestController {
 	public Map<String, Object> getMembers(@RequestParam("token") String token, @RequestParam("roomId") String roomId)
 			throws Exception {
 		LOG.info("[getMembers()] GET : /room/member START");
-		
+
 		Map<String, Object> response = new HashMap<String, Object>();
 
 		List<Map<String, Object>> members = dbc.getMembers(token, roomId);
@@ -377,19 +379,67 @@ public class RequestController {
 	public Map<String, Object> getMsgListFromRoom(@RequestParam("token") String token,
 			@RequestParam("roomId") String roomId, @RequestParam("msgId") int msgId,
 			@RequestParam("orderBy") String orderBy, @RequestParam("msgCnt") String msgCnt) throws Exception {
+		LOG.info("[getMsgList()] GET : /room/talk START");
 		Map<String, Object> response = new HashMap<String, Object>();
-
-		List<Map<String, String>> msgs = null;// dbc.getMsgListFromRoom(token);
+		
+		List<Map<String, Object>> msgs = cs.getMsgsFromRoom(token, roomId, msgId, orderBy, msgCnt);
+		//= dbc.getMsgListFromRoom(token,roomId, msgId, orderBy, msgCnt);
+		
 		if (msgs == null) {
+			LOG.info("[getMsgList()] GET : /room/talk => FAIL");
 			response.put("responseCode", 1);
 		} else {// Success.
-			response.put("rooms", msgs);
-			response.put("roomId", roomId);
+			LOG.info("[getMsgList()] GET : /room/talk => SUCCESS");
 			response.put("responseCode", 0);
+			response.put("msgs", msgs);
+			response.put("roomId", roomId);
 		}
 
+		LOG.info("[getMsgList()] GET : /room/talk END");
 		return response;
 	}
+	
+	
+	// 타임라인
+	@RequestMapping(value = "/timeline", method = RequestMethod.GET)
+	public Map<String, Object> getTimeline(@RequestParam("token") String token) throws Exception {
+		LOG.info("[getTimeline()] GET : /timeline START");
+		Map<String, Object> response = new HashMap<String, Object>();
+		
+		List<Map<String, Object>> rooms = cs.getTimeline(token);
+		if (rooms == null) {
+			LOG.info("[getTimeline()] GET : /timeline => FAIL");
+			response.put("responseCode", 1);
+		} else {// Success.
+			LOG.info("[getTimeline()] GET : /timeline => SUCCESS");
+			response.put("responseCode", 0);
+			response.put("rooms", rooms);
+		}
+
+		LOG.info("[getTimeline()] GET : /timeline END");
+		return response;
+	}
+	
+	// 최신글.
+	@RequestMapping(value = "/room/summary", method = RequestMethod.GET)
+	public Map<String, Object> getSummary(@RequestParam("token") String token) throws Exception {
+		LOG.info("[getSummary()] GET : /timeline START");
+		Map<String, Object> response = new HashMap<String, Object>();
+		
+		List<Map<String, Object>> rooms = cs.getSummary(token);
+		if (rooms == null) {
+			LOG.info("[getSummary()] GET : /timeline => FAIL");
+			response.put("responseCode", 1);
+		} else {// Success.
+			LOG.info("[getSummary()] GET : /timeline => SUCCESS");
+			response.put("responseCode", 0);
+			response.put("rooms", rooms);
+		}
+
+		LOG.info("[getSummary()] GET : /timeline END");
+		return response;
+	}
+	
 
 //TEST===================================================================
 
