@@ -285,7 +285,7 @@ public class ChatService {
 			}
 
 			// send Msg
-			if (!dbc.sendMsg2(type, roomId, msgId, jwt.getUserIdFromToken(token), to, text, timestamp)) {
+			if (!dbc.sendMsg(type, roomId, msgId, jwt.getUserIdFromToken(token), to, text, timestamp)) {
 				throw new Exception("sendMsg Fail");
 			}
 
@@ -361,7 +361,7 @@ public class ChatService {
 			}
 
 			// setLastMsgId
-			dbc.setLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
+			dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
 		} catch (Exception e) {
 			LOG.severe(e.getMessage());
 			return null;
@@ -419,7 +419,7 @@ public class ChatService {
 				}
 
 				// setLastMsgId
-				dbc.setLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
+				dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
 
 			} catch (EmptyResultDataAccessException e1) {
 				LOG.info("There are no Recent Msg");

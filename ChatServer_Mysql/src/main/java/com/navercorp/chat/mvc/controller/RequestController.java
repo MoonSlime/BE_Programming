@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.navercorp.chat.mvc.model.Room;
 import com.navercorp.chat.service.ChatService;
+import com.navercorp.chat.service.UserService;
 
 @RestController
 @Configuration
@@ -29,6 +30,9 @@ public class RequestController {
 
 	@Autowired
 	private ChatService cs;
+	
+	@Autowired
+	private UserService us;
 	
 	enum RequestType {
 		POST, PUT, GET, DELETE
@@ -73,20 +77,21 @@ public class RequestController {
 	}
 
 //POST======================================================================
-	// 회원가입
+	// 유저생성.
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public Map<String, String> signup(@RequestParam("userId") String userId, @RequestParam("password") String password,
+	public Map<String, Object> createUser(@RequestParam("userId") String userId, @RequestParam("password") String password,
 			@RequestParam("name") String name) throws Exception {
 
 		// password Encryption.
 
-		LOG.info("[signup()] POST : /signIn START");
-		ResponseCode rc = ResponseCode.FAIL;
-		if (dbc.signup(userId, password, name)) {
-			rc = ResponseCode.SUCCESS;
+		Map<String, Object> response = new HashMap<String, Object>();
+		if(us.createUser(userId, password, name)) {
+			response.put("responseCode", 0);
 		}
-		LOG.info("[signup()] POST : /signIn END");
-		return ResponseMapping(RequestType.POST, rc);
+		else {
+			response.put("responseCode", 1);
+		}
+		return response;
 	}
 
 	// 로그인
@@ -97,9 +102,9 @@ public class RequestController {
 		// password Encryption.
 
 		Map<String, Object> response = new HashMap<String, Object>();
-
+		
 		String token = null;
-		if ((token = dbc.login(userId, password)) == null) {
+		if ((token = us.login(userId, password)) == null) {
 			LOG.info("[login()] POST : /login => FAIL");
 			response.put("responseCode", 1);
 		} else {
@@ -205,34 +210,48 @@ public class RequestController {
 	}
 
 //DELETE======================================================================
-	// 회원탈퇴
+	// 유저 탈퇴.
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
-	public Map<String, String> signout(@RequestParam("token") String token) throws Exception {
-
-		String userId = null;
-
+	public Map<String, Object> deleteUser(@RequestParam("token") String token) throws Exception {
 		LOG.info("[signout()] DELETE : /user START");
-		ResponseCode rc = ResponseCode.SUCCESS;
-		if ((userId = dbc.signout(token)) == null) {
-			rc = ResponseCode.FAIL;
+		
+		Map<String, Object> response = new HashMap<String, Object>();
+		String userId = us.deleteUser(token);
+
+		if (userId == null) {
+			LOG.info("[signout()] DELETE : /user => FAIL");
+			response.put("responseCode", 1);
 		}
+		else {
+			LOG.info("[signout()] DELETE : /user => SUCCESS");
+			response.put("responseCode", 0);
+			response.put("userId", userId);
+		}
+		
 		LOG.info("[signout()] DELETE : /user END");
-		return ResponseMapping(RequestType.DELETE, rc);
+		return response;
 	}
 
 	// 로그아웃
 	@RequestMapping(value = "/logout", method = RequestMethod.DELETE)
-	public Map<String, String> logout(@RequestParam("token") String token) throws Exception {
+	public Map<String, Object> logout(@RequestParam("token") String token) throws Exception {
 		LOG.info("[logout()] DELETE : /logout START");
 
-		String userId = null;
-
-		ResponseCode rc = ResponseCode.SUCCESS;
-		if ((userId = dbc.logout(token)) == null) {
-			rc = ResponseCode.FAIL;
+		Map<String, Object> response = new HashMap<String, Object>();
+		String userId = us.logout(token);
+		
+		if (userId == null) {
+			LOG.info("[logout()] DELETE : /logout => FAIL");
+			response.put("responseCode", 1);
 		}
-		LOG.info("[logout()] DELETE: /logout END");
-		return ResponseMapping(RequestType.DELETE, rc);
+		else {
+			LOG.info("[logout()] DELETE : /logout => SUCCESS");
+			response.put("responseCode", 0);
+			response.put("userId", userId);
+		}
+		
+		LOG.info("[logout()] DELETE : /logout END");		
+		return response;
 	}
 
 	// 채팅방 나가기.
@@ -255,18 +274,21 @@ public class RequestController {
 	// 유저 정보 변경
 	// return : userId, name
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
-	public Map<String, String> updateUserInfo(@RequestParam("token") String token, @RequestParam("name") String name)
+	public Map<String, Object> updateUserInfo(@RequestParam("token") String token, @RequestParam("name") String name)
 			throws Exception {
-		Map<String, Object> response = null;
-
 		LOG.info("[updateUserInfo()] PUT : /user START");
-		ResponseCode rc = ResponseCode.SUCCESS;
-		if ((response = dbc.updateUserInfo(token, name)) == null) {
-			rc = ResponseCode.FAIL;
+		
+		Map<String, Object> response = us.updateUserInfo(token, name);
+		if (response == null) {
+			response = new HashMap<String, Object>();
+			response.put("responseCode", 1);
 		}
-
+		else {
+			response.put("responseCode", 0);
+		}
+		
 		LOG.info("[updateUserInfo()] PUT : /user END");
-		return ResponseMapping(RequestType.PUT, rc);
+		return response;
 	}
 
 	// 채팅방 정보 변경.
@@ -280,7 +302,6 @@ public class RequestController {
 			@RequestParam(value = "password", required = false) String password) throws Exception {
 		LOG.info("[updateRoomInfo()] PUT : /room START");
 		Map<String, Object> response = new HashMap<String, Object>();
-//		Room room = dbc.updateRoomInfo(token, roomId, rname, password);
 		Room room = cs.updateRoomInfo(token, roomId, rname, password);
 		
 		if (room != null) {

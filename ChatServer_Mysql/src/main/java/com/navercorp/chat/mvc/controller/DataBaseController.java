@@ -48,177 +48,47 @@ public class DataBaseController {
 	}
 
 // USER_DB_CONTROLL ==================================================	
-
-	// 유저 생성(회원가입)
-	// params : userId, password, name
-	// return : SUCCESS or FAIL
-	public Boolean signup(String userId, String password, String name) throws Exception {
-		LOG.info("[signup()] START");
-
-		if (checkUserExist(userId, name)) {
-			LOG.severe("[signup()] END with FAIL, Because UserId or UserName is Already Exist");
-			return false;
-		}
-
+	//유저 생성.
+	public Boolean createUser(String userId, String password, String name){
 		try {
 			String sql = String.format("INSERT INTO pgtDB.CHAT_USER_TB (userId, password) VALUES ('%s', '%s')", userId,
 					password);
-			System.out.println("Update Field = " + jdb.update(sql));
-		} catch (DataAccessException e) {
-			LOG.severe("INSERT CHAT_USER_TB FAIL");
-			LOG.info("[signup()] END with FAIL");
-			return false;
-		}
-
-		try {
-			String sql = String.format("INSERT INTO pgtDB.CHAT_NAME_TB (userId, name) VALUES ('%s', '%s')", userId,
+			if(jdb.update(sql)==0)throw new Exception("INSERT CHAT_USER_TB FAIL");
+			
+			sql = String.format("INSERT INTO pgtDB.CHAT_NAME_TB (userId, name) VALUES ('%s', '%s')", userId,
 					name);
-			System.out.println("Update Field = " + jdb.update(sql));
-		} catch (DataAccessException e) {
-			LOG.severe("INSERT CHAT_USER_TB FAIL");
-			LOG.info("[signup()] END with FAIL");
+			if(jdb.update(sql)==0)throw new Exception("INSERT CHAT_NAME_TB FAIL");
+		} catch (Exception e) {
+			LOG.severe(e.getMessage());
 			return false;
 		}
-
-		// 성공시 return true;
-		LOG.info("[signup()] END with SUCCESS");
 		return true;
 	}
 
-	// 유저 로그인.
-	// params : userId, password
-	// return : user's auth token
-	// if(FAIL) : return null;
-	public String login(String userId, String password) throws Exception {
-		LOG.info("[login()] START");
-
-		// check userId & password
-		if (!checkUserPassword(userId, password)) {
-			LOG.info("[login()] END with FAIL");
-			return null;
-		}
-
-		String token = createAuthToken(userId);
-
-		appDB.loginedUser.put(userId, token);
-
-		if (!token_to_db) {
-			LOG.info("[login()] END with SUCCESS");
-			return token;
-		}
-
-		// INSERT TOKEN to CHAT_AUTH_TB. or UPDATE TOKEN to CHAT_AUTH_TB.
-		try {
-			String sql = String.format(
-					"INSERT INTO pgtDB.CHAT_AUTH_TB (userId, token) VALUES ('%s','%s') ON DUPLICATE KEY UPDATE token='%s'",
-					userId, token, token);
-			jdb.update(sql);
-		} catch (EmptyResultDataAccessException e) {
-			LOG.severe("[login()] END with FAIL");
-			return null;
-		}
-
-		LOG.info("[login()] END with SUCCESS");
-		return token;
-	}
-
-	// 유저 로그아웃.
-	// params : authToken
-	// return : userId
-	// if(FAIL) : return null;
-	public String logout(String token) throws Exception {
-		LOG.info("[logout()] START");
-
-		if (!authorization(token)) {
-			LOG.info("[logout()] END with FAIL");
-			return null;
-		}
-		// token -> userId
-		String userId = jwt.getUserIdFromToken(token);
-
-		appDB.loginedUser.remove(userId);
-
-		if (!token_to_db) {
-			LOG.info("[logout()] END with SUCCESS");
-			return token;
-		}
-
-		// DELETE Field.
-		try {
-			String sql = String.format("DELETE FROM pgtDB.CHAT_AUTH_TB WHERE token = '%s'", token);
-			System.out.println("Update Field = " + jdb.update(sql));
-		} catch (EmptyResultDataAccessException e) {// DELETE 실패.
-			LOG.info("There's no same userId & token. It can't deleted");
-			LOG.severe("[logout()] END with FAIL");
-			return null;
-		}
-
-		LOG.info("[logout()] END with SUCCESS");
-		return userId;
-	}
-
 	// 유저 회원탈퇴.
-	// params : authToken
-	// return : userId
-	// if(FAIL) : return null;
-	public String signout(String token) throws Exception {
-		LOG.info("[signout()] START");
-
-		if (!authorization(token)) {
-			LOG.info("[signout()] END with FAIL");
-			return null;
-		}
-		// token -> userId
-		String userId = jwt.getUserIdFromToken(token);
-
-		appDB.loginedUser.remove(userId);
-
-		try {// CHAT_USER_TB's userId is (AUTH_TB & NAME_TB)'s Foriegn key. on delete
-				// cascade.
+	public boolean deleteUser(String userId) {
+		try {// CHAT_USER_TB's userId is (AUTH_TB & NAME_TB)'s Foriegn key. on delete cascade
 			String sql = String.format("DELETE FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", userId);
-			System.out.println("Update Field = " + jdb.update(sql));
-		} catch (EmptyResultDataAccessException e) {// DELETE 실패.
-			LOG.info("There's no same userId & token. It can't deleted");
-			LOG.severe("[signout()] END with FAIL");
-			return null;
+			if(jdb.update(sql)==0)throw new Exception();
+		} catch (Exception e) {// DELETE 실패.
+			return false;
 		}
-
-		LOG.info("[signout()] END with SUCCESS");
-		return userId;
+		return true;
 	}
 
 	// 유저정보 변경.
 	// params : token, name
 	// return : userId, name
 	// if(FAIL) : return null;
-	public Map<String, Object> updateUserInfo(String token, String newName) throws Exception {
-		LOG.info("[updateUserInfo()] START");
-
-		if (!authorization(token)) {
-			LOG.info("[updateUserInfo()] END with FAIL");
-			return null;
-		}
-
-		// token -> userId
-		String userId = jwt.getUserIdFromToken(token);
-
-		// userId-> update name.
-		// UPDATE DB.NAME_TB SET name = '%s' WHERE userId = '%s'
+	public boolean updateUserInfo(String userId, String name){
 		try {
-			String sql = String.format("UPDATE pgtDB.CHAT_NAME_TB SET name = '%s' WHERE userId='%s'", newName, userId);
-			jdb.update(sql);// => Can't input duplicate name.
+			String sql = String.format("UPDATE pgtDB.CHAT_NAME_TB SET name = '%s' WHERE userId='%s'", name, userId);
+			if (jdb.update(sql)==0)throw new Exception("Name is duplicated");// => Can't input duplicate name.
 		} catch (Exception e) {
-			LOG.severe("FAIL with Update User Name ");
-			LOG.info("[updateUserInfo()] END with FAIL");
-			return null;
+			LOG.severe(e.getMessage());
+			return false;
 		}
-
-		Map<String, Object> ret = new HashMap<String, Object>();
-		ret.put("userId", userId);
-		ret.put("name", newName);
-
-		LOG.info("[updateUserInfo()] END with SUCCESS");
-		return ret;
+		return true;
 	}
 
 	// 유저 목록 조회
@@ -243,34 +113,6 @@ public class DataBaseController {
 		}
 
 		LOG.info("[getUserList()] END with SUCCESS");
-		return users;
-	}
-
-	// 로그인한 유저 목록 조회 (잠시 사용 중지)
-	// params : token
-	// return : map<userId, name>
-	// if(FAIL) : return null;
-	public List<Map<String, Object>> getLoginedUsers(String token) throws Exception {
-		LOG.info("[getLloginedUserList()] START");
-
-		if (!authorization(token)) {
-			LOG.info("[getLoginedUserList()] END with FAIL");
-			return null;
-		}
-
-		// appDB.update();!!
-
-		List<Map<String, Object>> users = null;
-		try {
-			String sql = new String(
-					"SELECT a.userID, n.name FROM pgtDB.CHAT_AUTH_TB AS a JOIN pgtDB.CHAT_NAME_TB AS n ON a.userID = n.userId");
-			users = jdb.queryForList(sql);
-		} catch (EmptyResultDataAccessException e) {
-			LOG.info("[getLoginedUserList()] END with FAIL");
-			return null;
-		}
-
-		LOG.info("[getLoginedUserList()] END with SUCCESS");
 		return users;
 	}
 
@@ -329,7 +171,7 @@ public class DataBaseController {
 
 // Func() =======================================================
 	// 유저 존재 확인.
-	private boolean checkUserExist(String userId, String name) {
+	public boolean checkUserExist(String userId, String name) {
 		Map<String, Object> map = null;
 		try {
 			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", userId);
@@ -355,7 +197,7 @@ public class DataBaseController {
 	}
 
 	// 유저 존재 확인 & 유저 비밀번호의 적합성 검사.
-	private boolean checkUserPassword(String userId, String password) {
+	public boolean checkUserPassword(String userId, String password) {
 		try {
 			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userID='%s' AND password='%s'",
 					userId, password);
@@ -367,12 +209,6 @@ public class DataBaseController {
 		return true;
 	}
 
-	private String createAuthToken(String userId) {
-		String generatedToken = jwt.generateToken(userId);
-		System.out.println(userId + " Token => " + generatedToken);
-		return generatedToken;
-	}
-
 	public boolean authorization(String token) {
 		String validToken = appDB.loginedUser.get(jwt.getUserIdFromToken(token));
 		if (validToken == null)
@@ -381,38 +217,6 @@ public class DataBaseController {
 			return !jwt.isTokenExpired(validToken);
 		else
 			return false;
-
-//		String userId = null;
-//		try {
-//			Map<String, Object> map = new HashMap<String, Object>();
-//			String sql = String.format("SELECT userId FROM pgtDB.CHAT_AUTH_TB WHERE token='%s'", token);
-//			map = jdb.queryForMap(sql);
-//			userId = (String) map.get("userId");
-//		} catch (EmptyResultDataAccessException e) {
-//			LOG.severe("Authorization FAIL");
-//			return false;
-//		}
-//
-//		return jwt.validateToken(token, userId);
-	}
-
-	// get & check. if user have autoToken.
-	// params : userId
-	// return : user's auth token
-	// if(FAIL) : return null;
-	private String getAuthTokenFromDB(String userId) {
-		// SELECT token FROM pgtDB.CHAT_AUTH_TB WHERE userID='testUserId1';
-		Map<String, Object> map = null;
-		try {
-			String sql = String.format("SELECT token FROM pgtDB.CHAT_AUTH_TB WHERE userID='%s'", userId);
-			map = jdb.queryForMap(sql);
-		} catch (EmptyResultDataAccessException e) {
-			LOG.info("There's no token for user.");
-			return null;
-		}
-
-		String token = (String) map.get("token");
-		return token;
 	}
 
 //	==============================================================
@@ -448,7 +252,6 @@ public class DataBaseController {
 		LOG.info("[getCurrentRoomList()] END with SUCCESS");
 		return ht;
 	}
-	// ===========
 
 	public String getUserName(String userId) {
 		String userName = null;
@@ -516,7 +319,7 @@ public class DataBaseController {
 		return roomIds;
 	}
 
-	public boolean setLastMsgId(String roomId, String userId, int lastMsgId) {
+	public boolean setUsersLastMsgId(String roomId, String userId, int lastMsgId) {
 		try {
 			String sql = String.format("UPDATE pgtDB.CHAT_JOIN_TB SET lastMsgId='%d' WHERE roomId='%s' AND userId='%s'",
 					lastMsgId, roomId, userId);
@@ -543,7 +346,7 @@ public class DataBaseController {
 		return true;
 	}
 
-	public boolean sendMsg2(String type, String roomId, int msgId, String from, String to, String text,
+	public boolean sendMsg(String type, String roomId, int msgId, String from, String to, String text,
 			long timestamp) {
 		String sql = null;
 		if (type.equals("talk") && to == null) {
