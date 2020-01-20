@@ -15,18 +15,6 @@ public class MySqlConfig{
 		System.out.println("MySqlConfig Created");
 	}
 	
-//	public MySqlConfig() throws Exception {
-//		Properties properties = new Properties();
-//		properties.setProperty("driverClassName", "com.mysql.cj.jdbc.Driver");
-//		properties.setProperty("username", "pgt");
-//		properties.setProperty("password", "PASS1234");
-//		properties.setProperty("url",
-//				"jdbc:mysql://10.105.194.81:13306/pgtDB?autoReconnect=true&useTimezone=true&serverTimezone=UTC");
-//
-//		BasicDataSource createDataSource = BasicDataSourceFactory.createDataSource(properties);
-//		jdbcTemplate = new JdbcTemplate(createDataSource);
-//	}
-	
 	@Bean
 	public JdbcTemplate initJdbcTemplate() throws Exception {
 		Properties properties = new Properties();

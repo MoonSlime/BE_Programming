@@ -115,7 +115,6 @@ public class RequestController {
 //	string	token	user auth token
 //	string	name	room name
 //	string	password	room password. not essential
-	// 채팅방을 생성한다. 생성한 채팅방에 자동입장됨. name 은 중복이 불가능. password 는 선택사항
 	@RequestMapping(value = "/room", method = RequestMethod.POST)
 	public Map<String, Object> createChatRoom(@RequestParam("token") String token, @RequestParam("name") String rname,
 			@RequestParam(value = "password", required = false) String rpassword) {
@@ -123,7 +122,7 @@ public class RequestController {
 
 		// rpassword encryption.
 
-		Map<String, Object> response = dbc.createChatRoom(token, rname, rpassword);
+		Map<String, Object> response = cs.createChatRoom(token, rname, rpassword);
 
 		if (response == null) {
 			LOG.info("[createChatRoom()] POST : /room => FAIL");
@@ -145,7 +144,7 @@ public class RequestController {
 
 		// password Encryption.
 
-		Map<String, Object> response = dbc.joinChatRoom(token, roomId, password);
+		Map<String, Object> response = cs.joinChatRoom(token, roomId, password);
 
 		if (response == null) {
 			response = new HashMap<String, Object>();
@@ -187,9 +186,9 @@ public class RequestController {
 			throws Exception {
 		LOG.info("[sendMsg()] POST : /room/whisper START");
 
+		Map<String, Object> response = new HashMap<String, Object>();
 		Map<String, Object> msg = cs.sendMsg(token, "whisper", roomId, to, text);
 
-		Map<String, Object> response = new HashMap<String, Object>();
 		if (msg == null) {
 			LOG.info("[sendMsg()] POST : /room/talk => FAIL");
 			response.put("responseCode", 1);
@@ -242,7 +241,7 @@ public class RequestController {
 			throws Exception {
 		Map<String, Object> response = new HashMap<String, Object>();
 
-		if (dbc.exitRoom(token, roomId)) {// SUCCESS
+		if (cs.exitRoom(token, roomId)) {// SUCCESS
 			response.put("responseCode", 0);
 			response.put("roomId", roomId);
 		} else {// FAIL
@@ -281,8 +280,9 @@ public class RequestController {
 			@RequestParam(value = "password", required = false) String password) throws Exception {
 		LOG.info("[updateRoomInfo()] PUT : /room START");
 		Map<String, Object> response = new HashMap<String, Object>();
-
-		Room room = dbc.updateRoomInfo(token, roomId, rname, password);
+//		Room room = dbc.updateRoomInfo(token, roomId, rname, password);
+		Room room = cs.updateRoomInfo(token, roomId, rname, password);
+		
 		if (room != null) {
 			LOG.info("[updateRoomInfo()] PUT : /room => SUCCESS");
 			response.put("responseCode", 0);
@@ -315,29 +315,14 @@ public class RequestController {
 		return responseMap;
 	}
 
-	// 로그인한 유저 목록 조회
-//	@RequestMapping(value = "/user/login", method = RequestMethod.GET)
-//	public Map<String, Object> getLoginedUserList(@RequestParam("token") String token) throws Exception {
-//		LOG.info("[getLoginedUserList()] GET : /user/login START");
-//		ResponseCode rc = ResponseCode.SUCCESS;
-//		List<Map<String, Object>> users = null;
-//		if ((users = dbc.getLoginedUserList(token)) == null) {
-//			rc = ResponseCode.FAIL;
-//		}
-//		LOG.info("[getLoginedUserList()] GET : /user/login END");
-//		Map<String, Object> responseMap = new HashMap<String, Object>();
-//		responseMap.put("responseCode", (Object) rc);
-//		responseMap.put("users", (Object) users);
-//		return responseMap;
-//	}
-
 	// 채팅방 조회
 	@RequestMapping(value = "/room", method = RequestMethod.GET)
 	public Map<String, Object> getRooms(@RequestParam("token") String token) throws Exception {
 		LOG.info("[getRooms()] GET : /room START");
 
 		Map<String, Object> response = new HashMap<String, Object>();
-		List<Map<String,Object>> rooms = dbc.getRooms(token);
+		List<Map<String,Object>> rooms = cs.getRooms(token);
+		
 		if (rooms == null) {
 			LOG.info("[getRooms()] GET : /room => FAIL");
 			response.put("responseCode", 1);
@@ -358,16 +343,16 @@ public class RequestController {
 		LOG.info("[getMembers()] GET : /room/member START");
 
 		Map<String, Object> response = new HashMap<String, Object>();
-
-		List<Map<String, Object>> members = dbc.getMembers(token, roomId);
-		if (members == null) {
+		List<Map<String, Object>> users = cs.getMembers(token, roomId);
+		
+		if (users == null) {
 			LOG.info("[getMembers()] GET : /room/member => FAIL");
 			response.put("responseCode", 1);
 		} else {// Success.
 			LOG.info("[getMembers()] GET : /room/member => SUCCESS");
 			response.put("responseCode", 0);
 			response.put("roomId", roomId);
-			response.put("users", members);
+			response.put("users", users);
 		}
 
 		LOG.info("[getMembers()] GET : /room/member END");
@@ -381,9 +366,7 @@ public class RequestController {
 			@RequestParam("orderBy") String orderBy, @RequestParam("msgCnt") String msgCnt) throws Exception {
 		LOG.info("[getMsgList()] GET : /room/talk START");
 		Map<String, Object> response = new HashMap<String, Object>();
-		
 		List<Map<String, Object>> msgs = cs.getMsgsFromRoom(token, roomId, msgId, orderBy, msgCnt);
-		//= dbc.getMsgListFromRoom(token,roomId, msgId, orderBy, msgCnt);
 		
 		if (msgs == null) {
 			LOG.info("[getMsgList()] GET : /room/talk => FAIL");
@@ -442,17 +425,6 @@ public class RequestController {
 	
 
 //TEST===================================================================
-
-	@Autowired
-	testDaoController tdc;
-
-	@RequestMapping(value = "/test1", method = RequestMethod.GET)
-	public Map<String, String> test1() {
-
-		tdc.run();
-
-		return ResponseMapping(RequestType.POST, ResponseCode.SUCCESS);
-	}
 
 	@RequestMapping(value = "/h", method = RequestMethod.GET)
 	public Map<String, String> home(Locale locale) {

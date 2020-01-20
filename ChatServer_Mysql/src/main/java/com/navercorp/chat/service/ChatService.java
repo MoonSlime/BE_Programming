@@ -37,6 +37,224 @@ public class ChatService {
 		return System.nanoTime() + currentTimeNanosOffset;
 	}
 
+	public Map<String, Object> createChatRoom(String token, String rname, String rpassword) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		// Name 중복 확인.
+		if (checkRoomsNameIsDup(rname)) {
+			LOG.severe("room name is duplicated");
+			return null;
+		}
+
+		String roomId = null, userId = jwt.getUserIdFromToken(token), username = null;
+
+		try {
+			if (!dbc.createChatRoom(rname, rpassword)) {
+				throw new Exception("createChatRoom Fail");
+			}
+
+			if ((roomId = dbc.getRoomId(rname)) == null) {
+				throw new Exception("getRoomId Fail");
+			}
+
+			if ((username = dbc.getUserName(userId)) == null) {
+				throw new Exception("getUserName Fail");
+			}
+
+			// 채팅방생성시 자동입장.
+			if (!dbc.joinChatRoom(roomId, userId, 0)) {
+				throw new Exception("joinChatRoom Fail");
+			}
+		} catch (Exception e) {
+			LOG.severe(e.getMessage());
+			return null;
+		}
+
+		Room room = new Room();
+		room.setRoomId(roomId);
+		room.setName(rname);
+		room.setPassword(rpassword);
+		room.setLastMsgId(0);
+		appDB.createdRoom.put(roomId, room);
+
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("roomId", roomId);
+		result.put("name", rname);
+		Map<String, Object> user = new HashMap<String, Object>();
+		user.put("userId", userId);
+		user.put("name", username);
+		result.put("users", user);
+
+		return result;
+	}
+
+	public List<Map<String, Object>> getRooms(String token) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		List<Map<String, Object>> rooms = new Vector<Map<String, Object>>();
+		for (String key : appDB.createdRoom.keySet()) {
+			Map<String, Object> room = new HashMap<String, Object>();
+			room.put("roomId", key);
+			room.put("name", appDB.createdRoom.get(key).getName());
+			rooms.add(room);
+		}
+		return rooms;
+	}
+
+//	Map<String, Object> response = dbc.joinChatRoom(token, roomId, password);
+	public Map<String, Object> joinChatRoom(String token, String roomId, String password) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		// roomId 존재 확인.
+		Room room = null;
+		if ((room = roomIsExist(roomId)) == null) {
+			LOG.severe("room is not exist");
+			return null;
+		}
+
+		String userId = jwt.getUserIdFromToken(token);
+		String name = null;
+		int lastMsgId = 0;
+
+		try {
+			// room pwd 확인.
+			if (room.getPassword() == null && password == null) {
+			} else if (room.getPassword() == null && password != null) {
+				throw new Exception("Password is not valid");
+			} else if (room.getPassword() != null && password == null) {
+				throw new Exception("Password is not valid");
+			} else if (!room.getPassword().equals(password)) {
+				throw new Exception("Password is not valid");
+			}
+
+			if (dbc.checkUserIsRoomMember(roomId, userId)) {
+				throw new Exception("User is already room's member");
+			}
+
+			if (room.getLastMsgId() != 0) {
+				lastMsgId = room.getLastMsgId() + 1;
+			}
+
+			if (!dbc.joinChatRoom(roomId, userId, lastMsgId)) {
+				throw new Exception("joinChatRoom Fail");
+			}
+
+			if ((name = dbc.getUserName(userId)) == null) {
+				throw new Exception("getUserName Fail");
+			}
+		} catch (Exception e) {
+			LOG.severe(e.getMessage());
+			return null;
+		}
+
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("roomId", roomId);
+		result.put("name", room.getName());
+		result.put("msgId", lastMsgId);
+		Map<String, Object> user = new HashMap<String, Object>();
+		user.put("userId", userId);
+		user.put("name", name);
+		result.put("users", user);
+
+		return result;
+	}
+
+//	cs.exitRoom(token, roomId)
+	public boolean exitRoom(String token, String roomId) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return false;
+		}
+
+		// roomId 존재 확인.
+		Room room = null;
+		if ((room = roomIsExist(roomId)) == null) {
+			LOG.severe("room is not exist");
+			return false;
+		}
+
+		if (!dbc.exitRoom(roomId, jwt.getUserIdFromToken(token))) {
+			LOG.severe("exitRoom Fail");
+			return false;
+		}
+
+		return true;
+	}
+	
+	public List<Map<String, Object>> getMembers(String token, String roomId) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		// roomId 존재 확인.
+		Room room = null;
+		if ((room = roomIsExist(roomId)) == null) {
+			LOG.severe("room is not exist");
+			return null;
+		}
+		
+		List<Map<String, Object>> users;
+		try {
+			if (!dbc.checkUserIsRoomMember(roomId, jwt.getUserIdFromToken(token)))
+				throw new Exception("User is not room member");
+
+			if ((users = dbc.getMembers(roomId))==null)
+				throw new Exception("getMembers Fail");
+			
+		} catch (Exception e) {
+			LOG.severe(e.getMessage());
+			return null;
+		}
+
+		return users;
+	}
+	
+	public Room updateRoomInfo(String token, String roomId, String rname, String password) {
+		if (!authorization(token)) {
+			LOG.severe("authorization fail");
+			return null;
+		}
+
+		// roomId 존재 확인.
+		Room room = null;
+		if ((room = roomIsExist(roomId)) == null) {
+			LOG.severe("room is not exist");
+			return null;
+		}
+
+		try {
+			if (!dbc.checkUserIsRoomMember(roomId, jwt.getUserIdFromToken(token))) {
+				throw new Exception("User is Not RoomMember");
+			}
+			
+			if (rname != null) {
+				if (checkRoomsNameIsDup(rname)) {
+					throw new Exception("Room name is duplicated");
+				}
+			}
+			
+			if ((room = dbc.updateRoomInfo(room, roomId, rname, password))==null) {
+				throw new Exception("updateRoomInfo Fail");
+			}
+		} catch (Exception e) {
+			LOG.severe(e.getMessage());
+			return null;
+		}
+
+		appDB.createdRoom.put(roomId, room);
+		return room;
+	}
+	
 	public Map<String, Object> sendMsg(String token, String type, String roomId, String to, String text) {
 		if (!authorization(token)) {
 			LOG.severe("authorization fail");
@@ -274,6 +492,16 @@ public class ChatService {
 			return !jwt.isTokenExpired(validToken);
 		else
 			return false;
+	}
+
+	public boolean checkRoomsNameIsDup(String rname) {
+		for (String key : appDB.createdRoom.keySet()) {
+			if (appDB.createdRoom.get(key).getName().equals(rname)) {
+				LOG.info("[createChatRoom()] END with FAIL");
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private Room roomIsExist(String roomId) {
