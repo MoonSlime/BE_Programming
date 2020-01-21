@@ -94,6 +94,13 @@
 			<artifactId>spring-security-crypto</artifactId>
 			<version>5.2.1.RELEASE</version>
 		</dependency>
+
+		<!-- [Password Encryption] https://mvnrepository.com/artifact/org.mindrot/jbcrypt -->
+		<dependency>
+			<groupId>org.mindrot</groupId>
+			<artifactId>jbcrypt</artifactId>
+			<version>0.4</version>
+		</dependency>
 	</dependencies>
 
 	<properties>

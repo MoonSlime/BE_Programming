@@ -71,7 +71,7 @@ public class UserService {
 	}
 
 	//회원탈퇴.
-	public String deleteUser(String token) {
+	public synchronized String deleteUser(String token) {
 		// 유저 인증.
 		if (!authorization(token)) {
 			LOG.severe("Authorization Fail");

@@ -140,8 +140,10 @@ public class ChatService {
 				throw new Exception("User is already room's member");
 			}
 
-			if (room.getLastMsgId() != 0) {
-				lastMsgId = room.getLastMsgId() + 1;
+			synchronized (this) {
+				if (room.getLastMsgId() != 0) {
+					lastMsgId = room.getLastMsgId() + 1;
+				}
 			}
 
 			if (!dbc.joinChatRoom(roomId, userId, lastMsgId)) {
@@ -189,7 +191,7 @@ public class ChatService {
 
 		return true;
 	}
-	
+
 	public List<Map<String, Object>> getMembers(String token, String roomId) {
 		if (!authorization(token)) {
 			LOG.severe("authorization fail");
@@ -202,15 +204,15 @@ public class ChatService {
 			LOG.severe("room is not exist");
 			return null;
 		}
-		
+
 		List<Map<String, Object>> users;
 		try {
 			if (!dbc.checkUserIsRoomMember(roomId, jwt.getUserIdFromToken(token)))
 				throw new Exception("User is not room member");
 
-			if ((users = dbc.getMembers(roomId))==null)
+			if ((users = dbc.getMembers(roomId)) == null)
 				throw new Exception("getMembers Fail");
-			
+
 		} catch (Exception e) {
 			LOG.severe(e.getMessage());
 			return null;
@@ -218,7 +220,7 @@ public class ChatService {
 
 		return users;
 	}
-	
+
 	public Room updateRoomInfo(String token, String roomId, String rname, String password) {
 		if (!authorization(token)) {
 			LOG.severe("authorization fail");
@@ -236,14 +238,14 @@ public class ChatService {
 			if (!dbc.checkUserIsRoomMember(roomId, jwt.getUserIdFromToken(token))) {
 				throw new Exception("User is Not RoomMember");
 			}
-			
+
 			if (rname != null) {
 				if (checkRoomsNameIsDup(rname)) {
 					throw new Exception("Room name is duplicated");
 				}
 			}
-			
-			if ((room = dbc.updateRoomInfo(room, roomId, rname, password))==null) {
+
+			if ((room = dbc.updateRoomInfo(room, roomId, rname, password)) == null) {
 				throw new Exception("updateRoomInfo Fail");
 			}
 		} catch (Exception e) {
@@ -254,7 +256,7 @@ public class ChatService {
 		appDB.createdRoom.put(roomId, room);
 		return room;
 	}
-	
+
 	public Map<String, Object> sendMsg(String token, String type, String roomId, String to, String text) {
 		if (!authorization(token)) {
 			LOG.severe("authorization fail");
@@ -294,7 +296,9 @@ public class ChatService {
 				throw new Exception("setRoomsLastMsgId Fail");
 			}
 
-			room.setLastMsgId(msgId);
+			synchronized (this) {
+				room.setLastMsgId(msgId);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			LOG.severe(e.getMessage());
@@ -361,7 +365,9 @@ public class ChatService {
 			}
 
 			// setLastMsgId
-			dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
+			synchronized (this) {
+				dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
+			}
 		} catch (Exception e) {
 			LOG.severe(e.getMessage());
 			return null;
@@ -398,7 +404,6 @@ public class ChatService {
 			int msgId = ((int) map.get("lastMsgId")) + 1;
 			String orderBy = "ASC";
 			String msgCnt = "all";
-
 			try {// getMsgs
 				List<Map<String, Object>> msgs = null;
 				if ((msgs = dbc.getMsgs(roomId, msgId, userName, orderBy, msgCnt)) == null)
@@ -419,8 +424,9 @@ public class ChatService {
 				}
 
 				// setLastMsgId
-				dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
-
+				synchronized (this) {
+					dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
+				}
 			} catch (EmptyResultDataAccessException e1) {
 				LOG.info("There are no Recent Msg");
 			} catch (Exception e2) {

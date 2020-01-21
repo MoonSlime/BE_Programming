@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.navercorp.chat.ApplicationDatabase;
 import com.navercorp.chat.mvc.model.Room;
+import com.navercorp.chat.util.EncryptionUtil;
 import com.navercorp.chat.util.JwtTokenUtil;
 
 @Component
@@ -64,7 +65,7 @@ public class DataBaseController {
 	}
 
 	// 유저정보 변경.
-	public boolean updateUserInfo(String userId, String name) {
+	public synchronized boolean updateUserInfo(String userId, String name) {
 		try {
 			String sql = String.format("UPDATE pgtDB.CHAT_NAME_TB SET name = '%s' WHERE userId='%s'", name, userId);
 			if (jdb.update(sql) == 0)
@@ -78,7 +79,7 @@ public class DataBaseController {
 
 	// 유저 목록 조회
 	public List<Map<String, Object>> getUsers(String token) {
-		List<Map<String, Object>> users=null;
+		List<Map<String, Object>> users = null;
 		try {
 			String sql = String.format("SELECT userId, name FROM pgtDB.CHAT_NAME_TB");
 			users = jdb.queryForList(sql);
@@ -117,7 +118,7 @@ public class DataBaseController {
 		return users;
 	}
 
-	public Room updateRoomInfo(Room room, String roomId, String rname, String password) {
+	public synchronized Room updateRoomInfo(Room room, String roomId, String rname, String password) {
 		try {
 			String sql = null;
 
@@ -171,18 +172,32 @@ public class DataBaseController {
 		return false;
 	}
 
+//	// 유저 존재 확인 & 유저 비밀번호의 적합성 검사.
+//	public boolean checkUserPassword(String userId, String password) {
+//		try {
+//			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userID='%s' AND password='%s'",
+//					userId, password);
+//			Map<String, Object> map = jdb.queryForMap(sql);
+//		} catch (EmptyResultDataAccessException e) {
+//			LOG.severe("There's no appropriate User");
+//			return false;
+//		}
+//		return true;
+//	}
+//	
+
 	// 유저 존재 확인 & 유저 비밀번호의 적합성 검사.
 	public boolean checkUserPassword(String userId, String password) {
 		try {
-			String sql = String.format("SELECT userId FROM pgtDB.CHAT_USER_TB WHERE userID='%s' AND password='%s'",
-					userId, password);
+			String sql = String.format("SELECT password FROM pgtDB.CHAT_USER_TB WHERE userID='%s'", userId);
 			Map<String, Object> map = jdb.queryForMap(sql);
-		} catch (EmptyResultDataAccessException e) {
+			return EncryptionUtil.check(password, (String)map.get("password"));
+		} catch (Exception e) {
 			LOG.severe("There's no appropriate User");
 			return false;
 		}
-		return true;
 	}
+
 
 //	==============================================================
 	public Hashtable<String, Room> getCurrentRoomList(String auth) {
@@ -284,7 +299,7 @@ public class DataBaseController {
 		return roomIds;
 	}
 
-	public boolean setUsersLastMsgId(String roomId, String userId, int lastMsgId) {
+	public synchronized boolean setUsersLastMsgId(String roomId, String userId, int lastMsgId) {
 		try {
 			String sql = String.format("UPDATE pgtDB.CHAT_JOIN_TB SET lastMsgId='%d' WHERE roomId='%s' AND userId='%s'",
 					lastMsgId, roomId, userId);
@@ -298,7 +313,7 @@ public class DataBaseController {
 		return true;
 	}
 
-	public boolean setRoomsLastMsgId(String roomId, int lastMsgId) {
+	public synchronized boolean setRoomsLastMsgId(String roomId, int lastMsgId) {
 		try {
 			String sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET lastMsgId='%d' WHERE roomId='%s'", lastMsgId,
 					roomId);

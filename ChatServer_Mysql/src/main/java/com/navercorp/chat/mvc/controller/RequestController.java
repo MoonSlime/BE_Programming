@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.navercorp.chat.mvc.model.Room;
 import com.navercorp.chat.service.ChatService;
 import com.navercorp.chat.service.UserService;
+import com.navercorp.chat.util.EncryptionUtil;
 
 @RestController
 @Configuration
@@ -49,6 +50,7 @@ public class RequestController {
 			@RequestParam("password") String password, @RequestParam("name") String name) throws Exception {
 
 		// password Encryption.
+		password = EncryptionUtil.encryption(password);
 
 		Map<String, Object> response = new HashMap<String, Object>();
 		if (us.createUser(userId, password, name)) {
@@ -64,7 +66,9 @@ public class RequestController {
 	public Map<String, Object> login(@RequestParam("userId") String userId, @RequestParam("password") String password)
 			throws Exception {
 		LOG.info("[login()] POST : /login START");
+		
 		// password Encryption.
+		//password = EncryptionUtil.encryption(password);
 
 		Map<String, Object> response = new HashMap<String, Object>();
 
@@ -91,7 +95,9 @@ public class RequestController {
 			@RequestParam(value = "password", required = false) String rpassword) {
 		LOG.info("[createChatRoom()] POST : /room START");
 
-		// rpassword encryption.
+		// rpassword encryption
+		//rpassword = EncryptionUtil.encryption(rpassword);
+
 
 		Map<String, Object> response = cs.createChatRoom(token, rname, rpassword);
 
@@ -114,6 +120,7 @@ public class RequestController {
 			@RequestParam(value = "password", required = false) String password) throws Exception {
 
 		// password Encryption.
+		//password = EncryptionUtil.encryption(password);
 
 		Map<String, Object> response = cs.joinChatRoom(token, roomId, password);
 
@@ -264,6 +271,10 @@ public class RequestController {
 			@RequestParam("roomId") String roomId, @RequestParam(value = "name", required = false) String rname,
 			@RequestParam(value = "password", required = false) String password) throws Exception {
 		LOG.info("[updateRoomInfo()] PUT : /room START");
+		
+		// password Encryption.
+		//password = EncryptionUtil.encryption(password);
+		
 		Map<String, Object> response = new HashMap<String, Object>();
 		Room room = cs.updateRoomInfo(token, roomId, rname, password);
 
