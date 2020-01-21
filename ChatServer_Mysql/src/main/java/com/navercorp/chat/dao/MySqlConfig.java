@@ -12,7 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class MySqlConfig{
 	
 	public MySqlConfig() {
-		System.out.println("MySqlConfig Created");
+		System.out.println("--MySqlConfig Created--");
 	}
 	
 	@Bean
@@ -26,9 +26,5 @@ public class MySqlConfig{
 
 		BasicDataSource createDataSource = BasicDataSourceFactory.createDataSource(properties);
 		return new JdbcTemplate(createDataSource);
-	}
-	
-	public void query(String str){
-		
 	}
 }

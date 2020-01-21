@@ -1,6 +1,7 @@
 package com.navercorp.chat.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -25,6 +26,7 @@ public class UserService {
 	@Autowired
 	private DataBaseController dbc;
 
+	//회원생성.
 	public boolean createUser(String userId, String password, String name) {
 		if (dbc.checkUserExist(userId, name)) {
 			LOG.severe("User is already exist");
@@ -38,7 +40,7 @@ public class UserService {
 		return true;
 	}
 
-//	us.login(userId, password)
+	//로그인.
 	public String login(String userId, String password) {
 		// check userId & password
 		if (!dbc.checkUserPassword(userId, password)) {
@@ -53,6 +55,7 @@ public class UserService {
 
 	}
 
+	//로그아웃.
 	public String logout(String token) {
 		// 유저 인증.
 		if (!authorization(token)) {
@@ -67,6 +70,7 @@ public class UserService {
 		return userId;
 	}
 
+	//회원탈퇴.
 	public String deleteUser(String token) {
 		// 유저 인증.
 		if (!authorization(token)) {
@@ -87,6 +91,7 @@ public class UserService {
 		return userId;
 	}
 	
+	//유저 정보 변경.
 	public Map<String, Object> updateUserInfo(String token, String newName) {
 		// 유저 인증.
 		if (!authorization(token)) {
@@ -108,6 +113,22 @@ public class UserService {
 		ret.put("name", newName);
 
 		return ret;
+	}
+	
+	//유저 목록 조회.
+	public List<Map<String, Object>> getUsers(String token) {
+		// 유저 인증.
+		if (!authorization(token)) {
+			LOG.severe("Authorization Fail");
+			return null;
+		}
+
+		List<Map<String, Object>> users = null;
+		if ((users = dbc.getUsers(jwt.getUserIdFromToken(token)))==null) {
+			LOG.severe("getUsers Fail");
+			return null;
+		}
+		return users;
 	}
 
 //==========

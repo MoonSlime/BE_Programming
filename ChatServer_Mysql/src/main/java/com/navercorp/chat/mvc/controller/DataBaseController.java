@@ -28,36 +28,22 @@ public class DataBaseController {
 	@Autowired
 	private JdbcTemplate jdb;
 
-	@Autowired
-	private JwtTokenUtil jwt;
-
-	@Autowired
-	private ApplicationDatabase appDB;
-
 	public DataBaseController() {
 		LOG.info("DataBaseController Created");
 	}
 
-	// For Debug. Save Token to DB. IF(Deploy){It must be false.}
-	private boolean token_to_db = false;
-
-	private final static long currentTimeNanosOffset = (System.currentTimeMillis() * 1000000) - System.nanoTime();
-
-	public static long currentTimeNanos() {
-		return System.nanoTime() + currentTimeNanosOffset;
-	}
-
 // USER_DB_CONTROLL ==================================================	
-	//유저 생성.
-	public Boolean createUser(String userId, String password, String name){
+	// 유저 생성.
+	public Boolean createUser(String userId, String password, String name) {
 		try {
 			String sql = String.format("INSERT INTO pgtDB.CHAT_USER_TB (userId, password) VALUES ('%s', '%s')", userId,
 					password);
-			if(jdb.update(sql)==0)throw new Exception("INSERT CHAT_USER_TB FAIL");
-			
-			sql = String.format("INSERT INTO pgtDB.CHAT_NAME_TB (userId, name) VALUES ('%s', '%s')", userId,
-					name);
-			if(jdb.update(sql)==0)throw new Exception("INSERT CHAT_NAME_TB FAIL");
+			if (jdb.update(sql) == 0)
+				throw new Exception("INSERT CHAT_USER_TB FAIL");
+
+			sql = String.format("INSERT INTO pgtDB.CHAT_NAME_TB (userId, name) VALUES ('%s', '%s')", userId, name);
+			if (jdb.update(sql) == 0)
+				throw new Exception("INSERT CHAT_NAME_TB FAIL");
 		} catch (Exception e) {
 			LOG.severe(e.getMessage());
 			return false;
@@ -69,7 +55,8 @@ public class DataBaseController {
 	public boolean deleteUser(String userId) {
 		try {// CHAT_USER_TB's userId is (AUTH_TB & NAME_TB)'s Foriegn key. on delete cascade
 			String sql = String.format("DELETE FROM pgtDB.CHAT_USER_TB WHERE userId='%s'", userId);
-			if(jdb.update(sql)==0)throw new Exception();
+			if (jdb.update(sql) == 0)
+				throw new Exception();
 		} catch (Exception e) {// DELETE 실패.
 			return false;
 		}
@@ -77,13 +64,11 @@ public class DataBaseController {
 	}
 
 	// 유저정보 변경.
-	// params : token, name
-	// return : userId, name
-	// if(FAIL) : return null;
-	public boolean updateUserInfo(String userId, String name){
+	public boolean updateUserInfo(String userId, String name) {
 		try {
 			String sql = String.format("UPDATE pgtDB.CHAT_NAME_TB SET name = '%s' WHERE userId='%s'", name, userId);
-			if (jdb.update(sql)==0)throw new Exception("Name is duplicated");// => Can't input duplicate name.
+			if (jdb.update(sql) == 0)
+				throw new Exception("Name is duplicated");// => Can't input duplicate name.
 		} catch (Exception e) {
 			LOG.severe(e.getMessage());
 			return false;
@@ -92,27 +77,15 @@ public class DataBaseController {
 	}
 
 	// 유저 목록 조회
-	// params : token
-	// return : map<userId, name>
-	// if(FAIL) : return null;
-	public List<Map<String, Object>> getUsers(String token) throws Exception {
-		LOG.info("[getUserList()] START");
-
-		if (!authorization(token)) {
-			LOG.info("[getUserList()] END with FAIL");
-			return null;
-		}
-
-		List<Map<String, Object>> users = null;
+	public List<Map<String, Object>> getUsers(String token) {
+		List<Map<String, Object>> users=null;
 		try {
 			String sql = String.format("SELECT userId, name FROM pgtDB.CHAT_NAME_TB");
 			users = jdb.queryForList(sql);
-		} catch (EmptyResultDataAccessException e) {
-			LOG.info("[getUserList()] END with FAIL");
+		} catch (Exception e) {
+			LOG.severe("getUsers Fail");
 			return null;
 		}
-
-		LOG.info("[getUserList()] END with SUCCESS");
 		return users;
 	}
 
@@ -150,10 +123,11 @@ public class DataBaseController {
 
 			if (rname != null) {
 				sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET name='%s' WHERE roomId='%s'", rname, roomId);
-				if(jdb.update(sql)==0)throw new Exception();
+				if (jdb.update(sql) == 0)
+					throw new Exception();
 				room.setName(rname);
 			}
-			
+
 			if (room.getPassword() == null && password != null) {
 				room.setPassword(password);
 				sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET password='%s' WHERE roomId='%s'", password, roomId);
@@ -161,7 +135,8 @@ public class DataBaseController {
 				room.setPassword(null);
 				sql = String.format("UPDATE pgtDB.CHAT_ROOM_TB SET password=NULL WHERE roomId='%s'", roomId);
 			}
-			if (jdb.update(sql)==0)throw new Exception();
+			if (jdb.update(sql) == 0)
+				throw new Exception();
 		} catch (Exception e) {
 			return null;
 		}
@@ -207,16 +182,6 @@ public class DataBaseController {
 			return false;
 		}
 		return true;
-	}
-
-	public boolean authorization(String token) {
-		String validToken = appDB.loginedUser.get(jwt.getUserIdFromToken(token));
-		if (validToken == null)
-			return false;
-		else if (validToken.equals(token))
-			return !jwt.isTokenExpired(validToken);
-		else
-			return false;
 	}
 
 //	==============================================================
@@ -346,8 +311,7 @@ public class DataBaseController {
 		return true;
 	}
 
-	public boolean sendMsg(String type, String roomId, int msgId, String from, String to, String text,
-			long timestamp) {
+	public boolean sendMsg(String type, String roomId, int msgId, String from, String to, String text, long timestamp) {
 		String sql = null;
 		if (type.equals("talk") && to == null) {
 			sql = String.format(

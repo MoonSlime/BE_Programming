@@ -30,10 +30,10 @@ public class RequestController {
 
 	@Autowired
 	private ChatService cs;
-	
+
 	@Autowired
 	private UserService us;
-	
+
 	enum RequestType {
 		POST, PUT, GET, DELETE
 	}
@@ -42,53 +42,18 @@ public class RequestController {
 		SUCCESS, FAIL
 	}
 
-	public Map<String, String> ResponseMapping(RequestType rt, ResponseCode rc) {
-		Map<String, String> response = new HashMap<String, String>();
-
-		switch (rt) {
-		case POST:
-			response.put("RequestType", "Post");
-			break;
-		case PUT:
-			response.put("RequestType", "PUT");
-			break;
-		case GET:
-			response.put("RequestType", "GET");
-			break;
-		case DELETE:
-			response.put("RequestType", "DELETE");
-			break;
-		default:
-			response.put("RequestType", "None");
-		}
-
-		switch (rc) {
-		case SUCCESS:
-			response.put("ResponseCode", "SUCCESS");
-			break;
-		case FAIL:
-			response.put("ResponseCode", "FAIL");
-			break;
-		default:
-			response.put("ResponseCode", "None");
-		}
-
-		return response;
-	}
-
 //POST======================================================================
 	// 유저생성.
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public Map<String, Object> createUser(@RequestParam("userId") String userId, @RequestParam("password") String password,
-			@RequestParam("name") String name) throws Exception {
+	public Map<String, Object> createUser(@RequestParam("userId") String userId,
+			@RequestParam("password") String password, @RequestParam("name") String name) throws Exception {
 
 		// password Encryption.
 
 		Map<String, Object> response = new HashMap<String, Object>();
-		if(us.createUser(userId, password, name)) {
+		if (us.createUser(userId, password, name)) {
 			response.put("responseCode", 0);
-		}
-		else {
+		} else {
 			response.put("responseCode", 1);
 		}
 		return response;
@@ -102,7 +67,7 @@ public class RequestController {
 		// password Encryption.
 
 		Map<String, Object> response = new HashMap<String, Object>();
-		
+
 		String token = null;
 		if ((token = us.login(userId, password)) == null) {
 			LOG.info("[login()] POST : /login => FAIL");
@@ -117,6 +82,7 @@ public class RequestController {
 		return response;
 	}
 
+	//채팅방 생성.
 //	string	token	user auth token
 //	string	name	room name
 //	string	password	room password. not essential
@@ -214,20 +180,19 @@ public class RequestController {
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
 	public Map<String, Object> deleteUser(@RequestParam("token") String token) throws Exception {
 		LOG.info("[signout()] DELETE : /user START");
-		
+
 		Map<String, Object> response = new HashMap<String, Object>();
 		String userId = us.deleteUser(token);
 
 		if (userId == null) {
 			LOG.info("[signout()] DELETE : /user => FAIL");
 			response.put("responseCode", 1);
-		}
-		else {
+		} else {
 			LOG.info("[signout()] DELETE : /user => SUCCESS");
 			response.put("responseCode", 0);
 			response.put("userId", userId);
 		}
-		
+
 		LOG.info("[signout()] DELETE : /user END");
 		return response;
 	}
@@ -239,18 +204,17 @@ public class RequestController {
 
 		Map<String, Object> response = new HashMap<String, Object>();
 		String userId = us.logout(token);
-		
+
 		if (userId == null) {
 			LOG.info("[logout()] DELETE : /logout => FAIL");
 			response.put("responseCode", 1);
-		}
-		else {
+		} else {
 			LOG.info("[logout()] DELETE : /logout => SUCCESS");
 			response.put("responseCode", 0);
 			response.put("userId", userId);
 		}
-		
-		LOG.info("[logout()] DELETE : /logout END");		
+
+		LOG.info("[logout()] DELETE : /logout END");
 		return response;
 	}
 
@@ -277,16 +241,15 @@ public class RequestController {
 	public Map<String, Object> updateUserInfo(@RequestParam("token") String token, @RequestParam("name") String name)
 			throws Exception {
 		LOG.info("[updateUserInfo()] PUT : /user START");
-		
+
 		Map<String, Object> response = us.updateUserInfo(token, name);
 		if (response == null) {
 			response = new HashMap<String, Object>();
 			response.put("responseCode", 1);
-		}
-		else {
+		} else {
 			response.put("responseCode", 0);
 		}
-		
+
 		LOG.info("[updateUserInfo()] PUT : /user END");
 		return response;
 	}
@@ -303,7 +266,7 @@ public class RequestController {
 		LOG.info("[updateRoomInfo()] PUT : /room START");
 		Map<String, Object> response = new HashMap<String, Object>();
 		Room room = cs.updateRoomInfo(token, roomId, rname, password);
-		
+
 		if (room != null) {
 			LOG.info("[updateRoomInfo()] PUT : /room => SUCCESS");
 			response.put("responseCode", 0);
@@ -323,16 +286,17 @@ public class RequestController {
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
 	public Map<String, Object> getUserList(@RequestParam("token") String token) throws Exception {
 		LOG.info("[getUserList()] GET : /user START");
-		ResponseCode rc = ResponseCode.SUCCESS;
-		List<Map<String, Object>> users = null;
-		if ((users = dbc.getUsers(token)) == null) {
-			rc = ResponseCode.FAIL;
+
+		Map<String, Object> responseMap = new HashMap<String, Object>();
+		List<Map<String, Object>> users = us.getUsers(token);
+		if (users == null) {
+			responseMap.put("responseCode", 1);
+		} else {
+			responseMap.put("responseCode", 0);
+			responseMap.put("users", users);
 		}
 
 		LOG.info("[getUserList()] GET : /user END");
-		Map<String, Object> responseMap = new HashMap<String, Object>();
-		responseMap.put("responseCode", (Object) rc);
-		responseMap.put("users", (Object) users);
 		return responseMap;
 	}
 
@@ -342,8 +306,8 @@ public class RequestController {
 		LOG.info("[getRooms()] GET : /room START");
 
 		Map<String, Object> response = new HashMap<String, Object>();
-		List<Map<String,Object>> rooms = cs.getRooms(token);
-		
+		List<Map<String, Object>> rooms = cs.getRooms(token);
+
 		if (rooms == null) {
 			LOG.info("[getRooms()] GET : /room => FAIL");
 			response.put("responseCode", 1);
@@ -365,7 +329,7 @@ public class RequestController {
 
 		Map<String, Object> response = new HashMap<String, Object>();
 		List<Map<String, Object>> users = cs.getMembers(token, roomId);
-		
+
 		if (users == null) {
 			LOG.info("[getMembers()] GET : /room/member => FAIL");
 			response.put("responseCode", 1);
@@ -388,7 +352,7 @@ public class RequestController {
 		LOG.info("[getMsgList()] GET : /room/talk START");
 		Map<String, Object> response = new HashMap<String, Object>();
 		List<Map<String, Object>> msgs = cs.getMsgsFromRoom(token, roomId, msgId, orderBy, msgCnt);
-		
+
 		if (msgs == null) {
 			LOG.info("[getMsgList()] GET : /room/talk => FAIL");
 			response.put("responseCode", 1);
@@ -402,14 +366,13 @@ public class RequestController {
 		LOG.info("[getMsgList()] GET : /room/talk END");
 		return response;
 	}
-	
-	
+
 	// 타임라인
 	@RequestMapping(value = "/timeline", method = RequestMethod.GET)
 	public Map<String, Object> getTimeline(@RequestParam("token") String token) throws Exception {
 		LOG.info("[getTimeline()] GET : /timeline START");
 		Map<String, Object> response = new HashMap<String, Object>();
-		
+
 		List<Map<String, Object>> rooms = cs.getTimeline(token);
 		if (rooms == null) {
 			LOG.info("[getTimeline()] GET : /timeline => FAIL");
@@ -423,13 +386,13 @@ public class RequestController {
 		LOG.info("[getTimeline()] GET : /timeline END");
 		return response;
 	}
-	
+
 	// 최신글.
 	@RequestMapping(value = "/room/summary", method = RequestMethod.GET)
 	public Map<String, Object> getSummary(@RequestParam("token") String token) throws Exception {
 		LOG.info("[getSummary()] GET : /timeline START");
 		Map<String, Object> response = new HashMap<String, Object>();
-		
+
 		List<Map<String, Object>> rooms = cs.getSummary(token);
 		if (rooms == null) {
 			LOG.info("[getSummary()] GET : /timeline => FAIL");
@@ -443,7 +406,6 @@ public class RequestController {
 		LOG.info("[getSummary()] GET : /timeline END");
 		return response;
 	}
-	
 
 //TEST===================================================================
 
