@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -66,16 +68,22 @@ public class RequestController {
 	public Map<String, Object> login(@RequestParam("userId") String userId, @RequestParam("password") String password)
 			throws Exception {
 		LOG.info("[login()] POST : /login START");
-		
+
 		// password Encryption.
-		//password = EncryptionUtil.encryption(password);
-
+		// password = EncryptionUtil.encryption(password);
+		
 		Map<String, Object> response = new HashMap<String, Object>();
-
-		String token = null;
-		if ((token = us.login(userId, password)) == null) {
+		String token=null;
+		try {
+			token = us.login(userId, password);
+		} catch (Exception e) {
+			
+		}
+		
+		if (token == null) {
 			LOG.info("[login()] POST : /login => FAIL");
 			response.put("responseCode", 1);
+			response.put("status", 403);
 		} else {
 			LOG.info("[login()] POST : /login => SUCCESS");
 			response.put("responseCode", 0);
@@ -86,7 +94,7 @@ public class RequestController {
 		return response;
 	}
 
-	//채팅방 생성.
+	// 채팅방 생성.
 //	string	token	user auth token
 //	string	name	room name
 //	string	password	room password. not essential
@@ -96,8 +104,7 @@ public class RequestController {
 		LOG.info("[createChatRoom()] POST : /room START");
 
 		// rpassword encryption
-		//rpassword = EncryptionUtil.encryption(rpassword);
-
+		// rpassword = EncryptionUtil.encryption(rpassword);
 
 		Map<String, Object> response = cs.createChatRoom(token, rname, rpassword);
 
@@ -120,7 +127,7 @@ public class RequestController {
 			@RequestParam(value = "password", required = false) String password) throws Exception {
 
 		// password Encryption.
-		//password = EncryptionUtil.encryption(password);
+		// password = EncryptionUtil.encryption(password);
 
 		Map<String, Object> response = cs.joinChatRoom(token, roomId, password);
 
@@ -271,10 +278,10 @@ public class RequestController {
 			@RequestParam("roomId") String roomId, @RequestParam(value = "name", required = false) String rname,
 			@RequestParam(value = "password", required = false) String password) throws Exception {
 		LOG.info("[updateRoomInfo()] PUT : /room START");
-		
+
 		// password Encryption.
-		//password = EncryptionUtil.encryption(password);
-		
+		// password = EncryptionUtil.encryption(password);
+
 		Map<String, Object> response = new HashMap<String, Object>();
 		Room room = cs.updateRoomInfo(token, roomId, rname, password);
 

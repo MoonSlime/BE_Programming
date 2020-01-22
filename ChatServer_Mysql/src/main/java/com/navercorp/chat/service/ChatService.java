@@ -366,7 +366,7 @@ public class ChatService {
 
 			// setLastMsgId
 			synchronized (this) {
-				dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
+				dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId+1);
 			}
 		} catch (Exception e) {
 			LOG.severe(e.getMessage());
@@ -401,7 +401,7 @@ public class ChatService {
 		List<Map<String, Object>> rooms = new Vector<Map<String, Object>>();
 		for (Map<String, Object> map : roomIds) {
 			String roomId = Integer.toString((int) map.get("roomId"));
-			int msgId = ((int) map.get("lastMsgId")) + 1;
+			int msgId = ((int) map.get("lastMsgId"));
 			String orderBy = "ASC";
 			String msgCnt = "all";
 			try {// getMsgs
@@ -425,7 +425,7 @@ public class ChatService {
 
 				// setLastMsgId
 				synchronized (this) {
-					dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId);
+					dbc.setUsersLastMsgId(roomId, jwt.getUserIdFromToken(token), lastMsgId+1);
 				}
 			} catch (EmptyResultDataAccessException e1) {
 				LOG.info("There are no Recent Msg");
@@ -462,7 +462,7 @@ public class ChatService {
 		List<Map<String, Object>> rooms = new Vector<Map<String, Object>>();
 		for (Map<String, Object> map : roomIds) {
 			String roomId = Integer.toString((int) map.get("roomId"));
-			int msgId = ((int) map.get("lastMsgId")) + 1;
+			int msgId = ((int) map.get("lastMsgId"));
 			String orderBy = "DESC";
 			String msgCnt = "1";
 
@@ -472,7 +472,7 @@ public class ChatService {
 					throw new Exception();
 
 				if (msgs.size() == 0)
-					throw new Exception("There are no Msg");
+					throw new Exception("There are no Recent Msg in " + roomId);
 
 				Map<String, Object> tmp = new HashMap<String, Object>();
 				tmp.put("roomId", roomId);

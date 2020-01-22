@@ -301,7 +301,14 @@ public class DataBaseController {
 
 	public synchronized boolean setUsersLastMsgId(String roomId, String userId, int lastMsgId) {
 		try {
-			String sql = String.format("UPDATE pgtDB.CHAT_JOIN_TB SET lastMsgId='%d' WHERE roomId='%s' AND userId='%s'",
+			String sql=null;
+			sql = String.format("SELECT lastMsgId FROM pgtDB.CHAT_JOIN_TB WHERE roomId='%s' AND userId='%s'",roomId, userId);
+			int curMsgId = (int)(jdb.queryForMap(sql).get("lastMsgId"));
+			if (curMsgId >= lastMsgId) {
+				throw new Exception("no update");
+			}
+			
+			sql = String.format("UPDATE pgtDB.CHAT_JOIN_TB SET lastMsgId='%d' WHERE roomId='%s' AND userId='%s'",
 					lastMsgId, roomId, userId);
 			if (jdb.update(sql) == 0)
 				throw new Exception("update fail");
